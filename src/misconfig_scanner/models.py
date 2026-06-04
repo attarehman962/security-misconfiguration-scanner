@@ -307,3 +307,41 @@ class Scanner:
                     "host": parsed_url.netloc,
                 },
             )
+
+
+@dataclass(frozen=True, slots=True)
+class RiskScore:
+    report: Report
+    risk_score: int
+    description: str
+
+    SEVERITY_WEIGHTS = {
+        Severity.INFO: 0,
+        Severity.LOW: 1,
+        Severity.MEDIUM: 3,
+        Severity.HIGH: 7,
+        Severity.CRITICAL: 10,
+    }
+
+    @classmethod
+    def calculate_risk_score(cls, report: Report) -> "RiskScore":
+        """Calculate a risk score based on the report's findings."""
+        total_score = sum(
+            cls.SEVERITY_WEIGHTS[finding.severity]
+            for finding in report.findings
+        )
+
+        if total_score == 0:
+            description = "No issues found."
+        elif total_score < 10:
+            description = "Low risk."
+        elif total_score < 30:
+            description = "Medium risk."
+        else:
+            description = "High risk."
+
+        return cls(
+            report=report,        # ← pehle missing tha
+            risk_score=total_score,
+            description=description,
+        )
