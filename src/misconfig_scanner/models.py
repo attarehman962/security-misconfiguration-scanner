@@ -272,6 +272,7 @@ class Scanner:
     target: str
     scanner_name: str = "security-misconfiguration-scanner"
     findings: list[Finding] = field(default_factory=list, init=False)
+    _seen_keys: set = field(default_factory=set, init=False)
     started_at: datetime = field(default_factory=utc_now, init=False)
 
     def __post_init__(self) -> None:
@@ -280,9 +281,16 @@ class Scanner:
         validate_non_empty_text(self.scanner_name, "scanner_name")
 
     def add_finding(self, finding: Finding) -> None:
-        """Add a finding to the current scan after validation."""
+       
         if finding.target != self.target:
             raise ValueError("finding target must match scanner target.")
+
+        finding_key = finding._duplicate_key()
+        if finding_key in self._seen_keys:
+            raise ValueError(
+                f"finding with key {finding_key} already exists."
+            )
+        self._seen_keys.add(finding_key)
 
         duplicate_exists = any(
             existing_finding.check_id == finding.check_id
