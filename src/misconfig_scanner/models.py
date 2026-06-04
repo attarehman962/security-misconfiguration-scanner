@@ -33,6 +33,15 @@ class Severity(StrEnum):
     CRITICAL = "critical"
 
 
+SEVERITY_WEIGHTS: dict[Severity, int] = {
+    Severity.INFO: 0,
+    Severity.LOW: 1,
+    Severity.MEDIUM: 3,
+    Severity.HIGH: 7,
+    Severity.CRITICAL: 10,
+}
+
+
 class ScannerError(Exception):
     """Base exception for scanner-related failures."""
 
@@ -122,6 +131,30 @@ class Finding:
             "created_at": self.created_at.isoformat(),
         }
 
+    @classmethod
+    def from_dict(cls, data: dict[str, JsonValue]) -> "Finding":
+        try:
+            return cls(
+                check_id=cast(str, data["check_id"]),
+                target=cast(str, data["target"]),
+                severity=Severity(cast(str, data["severity"])),
+                title=cast(str, data["title"]),
+                description=cast(str, data["description"]),
+                recommendation=cast(str, data["recommendation"]),
+                evidence=cast(Mapping[str, JsonValue], data.get("evidence", {})),
+            )
+
+        except KeyError as error:
+            raise ValueError(
+                f"Missing required field in finding data: {error}"
+            ) from error
+        except (TypeError, ValueError) as error:
+            raise ValueError(f"Invalid data type in finding data: {error}") from error
+        
+        
+    def _duplicate_key(self) -> tuple[str, str, Severity, str]:
+        """Return a tuple that uniquely identifies this finding."""
+        return (self.check_id, self.target, self.severity, self.title)
 
 @dataclass(frozen=True, slots=True)
 class Report:
@@ -204,6 +237,32 @@ class Report:
             raise ReportSerializationError(
                 "Report could not be serialized to JSON."
             ) from error
+
+    @classmethod
+    def from_dict(cls, data: dict[str, JsonValue]) -> "Report":
+        try:
+            findings = tuple(
+                Finding.from_dict(finding_data)
+                for finding_data in cast(
+                    list[dict[str, JsonValue]],
+                    data.get("findings", []),
+                )
+            )
+
+            generated_at = datetime.fromisoformat(cast(str, data["generated_at"]))
+
+            return cls(
+                scanner_name=cast(str, data["scanner_name"]),
+                target=cast(str, data["target"]),
+                generated_at=generated_at,
+                metadata=cast(Mapping[str, JsonValue], data.get("metadata", {})),
+                findings=findings,
+            )
+
+        except KeyError as error:
+            raise ValueError(f"Missing field in report data: {error}") from error
+        except ValueError as error:
+            raise ValueError(f"Invalid report data: {error}") from error
 
 
 @dataclass(slots=True)
@@ -315,19 +374,11 @@ class RiskScore:
     risk_score: int
     description: str
 
-    SEVERITY_WEIGHTS = {
-        Severity.INFO: 0,
-        Severity.LOW: 1,
-        Severity.MEDIUM: 3,
-        Severity.HIGH: 7,
-        Severity.CRITICAL: 10,
-    }
-
     @classmethod
     def calculate_risk_score(cls, report: Report) -> "RiskScore":
         """Calculate a risk score based on the report's findings."""
         total_score = sum(
-            cls.SEVERITY_WEIGHTS[finding.severity]
+            SEVERITY_WEIGHTS[finding.severity]
             for finding in report.findings
         )
 
@@ -341,7 +392,7 @@ class RiskScore:
             description = "High risk."
 
         return cls(
-            report=report,        # ← pehle missing tha
+            report=report,
             risk_score=total_score,
             description=description,
         )
