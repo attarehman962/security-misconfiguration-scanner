@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import StrEnum
 from types import MappingProxyType
+from typing import cast
 from urllib.parse import urlparse
 
 
@@ -173,16 +174,18 @@ class Report:
 
     def to_dict(self) -> dict[str, JsonValue]:
         """Convert the report into a JSON-compatible dictionary."""
+        summary: JsonValue = {
+            "total_findings": len(self.findings),
+            "severity_counts": cast(JsonValue, self.severity_counts()),
+            "failed_security_gate": self.has_failed_security_gate(),
+        }
+
         return {
             "scanner_name": self.scanner_name,
             "target": self.target,
             "generated_at": self.generated_at.isoformat(),
             "metadata": dict(self.metadata),
-            "summary": {
-                "total_findings": len(self.findings),
-                "severity_counts": self.severity_counts(),
-                "failed_security_gate": self.has_failed_security_gate(),
-            },
+            "summary": summary,
             "findings": [
                 finding.to_dict()
                 for finding in self.findings
