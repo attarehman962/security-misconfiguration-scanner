@@ -11,16 +11,7 @@ from types import MappingProxyType
 from typing import cast
 from urllib.parse import urlparse
 
-
-JsonValue = (
-    str
-    | int
-    | float
-    | bool
-    | None
-    | list["JsonValue"]
-    | dict[str, "JsonValue"]
-)
+JsonValue = str | int | float | bool | None | list["JsonValue"] | dict[str, "JsonValue"]
 
 
 class Severity(StrEnum):
@@ -132,7 +123,7 @@ class Finding:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, JsonValue]) -> "Finding":
+    def from_dict(cls, data: dict[str, JsonValue]) -> Finding:
         try:
             return cls(
                 check_id=cast(str, data["check_id"]),
@@ -150,11 +141,11 @@ class Finding:
             ) from error
         except (TypeError, ValueError) as error:
             raise ValueError(f"Invalid data type in finding data: {error}") from error
-        
-        
+
     def _duplicate_key(self) -> tuple[str, str, Severity, str]:
         """Return a tuple that uniquely identifies this finding."""
         return (self.check_id, self.target, self.severity, self.title)
+
 
 @dataclass(frozen=True, slots=True)
 class Report:
@@ -200,10 +191,7 @@ class Report:
     def has_failed_security_gate(self) -> bool:
         """Return True when the report contains high or critical findings."""
         blocking_severities = {Severity.HIGH, Severity.CRITICAL}
-        return any(
-            finding.severity in blocking_severities
-            for finding in self.findings
-        )
+        return any(finding.severity in blocking_severities for finding in self.findings)
 
     def to_dict(self) -> dict[str, JsonValue]:
         """Convert the report into a JSON-compatible dictionary."""
@@ -219,10 +207,7 @@ class Report:
             "generated_at": self.generated_at.isoformat(),
             "metadata": dict(self.metadata),
             "summary": summary,
-            "findings": [
-                finding.to_dict()
-                for finding in self.findings
-            ],
+            "findings": [finding.to_dict() for finding in self.findings],
         }
 
     def to_json(self, indent: int = 2) -> str:
@@ -239,7 +224,7 @@ class Report:
             ) from error
 
     @classmethod
-    def from_dict(cls, data: dict[str, JsonValue]) -> "Report":
+    def from_dict(cls, data: dict[str, JsonValue]) -> Report:
         try:
             findings = tuple(
                 Finding.from_dict(finding_data)
@@ -272,7 +257,11 @@ class Scanner:
     target: str
     scanner_name: str = "security-misconfiguration-scanner"
     findings: list[Finding] = field(default_factory=list, init=False)
-    _seen_keys: set = field(default_factory=set, init=False)
+    _seen_keys: set[tuple[str, str, Severity, str]] = field(
+        default_factory=set,
+        init=False,
+        repr=False,
+    )
     started_at: datetime = field(default_factory=utc_now, init=False)
 
     def __post_init__(self) -> None:
@@ -281,15 +270,13 @@ class Scanner:
         validate_non_empty_text(self.scanner_name, "scanner_name")
 
     def add_finding(self, finding: Finding) -> None:
-       
+
         if finding.target != self.target:
             raise ValueError("finding target must match scanner target.")
 
         finding_key = finding._duplicate_key()
         if finding_key in self._seen_keys:
-            raise ValueError(
-                f"finding with key {finding_key} already exists."
-            )
+            raise ValueError(f"finding with key {finding_key} already exists.")
         self._seen_keys.add(finding_key)
 
         duplicate_exists = any(
@@ -298,9 +285,7 @@ class Scanner:
         )
 
         if duplicate_exists:
-            raise ValueError(
-                f"duplicate finding check_id detected: {finding.check_id}"
-            )
+            raise ValueError(f"duplicate finding check_id detected: {finding.check_id}")
 
         self.findings.append(finding)
 
@@ -383,11 +368,10 @@ class RiskScore:
     description: str
 
     @classmethod
-    def calculate_risk_score(cls, report: Report) -> "RiskScore":
+    def calculate_risk_score(cls, report: Report) -> RiskScore:
         """Calculate a risk score based on the report's findings."""
         total_score = sum(
-            SEVERITY_WEIGHTS[finding.severity]
-            for finding in report.findings
+            SEVERITY_WEIGHTS[finding.severity] for finding in report.findings
         )
 
         if total_score == 0:
