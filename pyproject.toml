@@ -1,0 +1,29 @@
+[project]
+name = "security-misconfiguration-scanner"
+version = "0.1.0"
+description = "Python security misconfiguration scanner portfolio project."
+requires-python = ">=3.14"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "mypy==2.1.0",
+    "pytest==9.0.2",
+    "ruff==0.15.15",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "ANN"]
+ignore = []
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+warn_unused_configs = true
+warn_return_any = true
+disallow_untyped_defs = true
+disallow_any_generics = true
