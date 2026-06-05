@@ -1,0 +1,1 @@
+"""Security misconfiguration scanner package."""
