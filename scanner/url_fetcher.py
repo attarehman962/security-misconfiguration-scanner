@@ -43,7 +43,7 @@ class UrlFetcher:
             ssl_expiry = None
             ssl_error = str(exc)
         else:
-            ssl_error = None
+            ssl_error = "None"
 
         try:
             with httpx.Client(
