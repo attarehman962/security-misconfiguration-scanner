@@ -1,0 +1,16 @@
+anyio==4.13.0
+ast_serialize==0.5.0
+certifi==2026.5.20
+cffi==2.0.0
+cryptography==48.0.0
+h11==0.16.0
+httpcore==1.0.9
+httpx==0.28.1
+idna==3.18
+librt==0.11.0
+mypy==2.1.0
+mypy_extensions==1.1.0
+pathspec==1.1.1
+pycparser==3.0
+-e git+https://github.com/attarehman962/security-misconfiguration-scanner@bb0b54b6a5387723fcc66d1201311f492687d974#egg=security_misconfiguration_scanner
+typing_extensions==4.15.0
