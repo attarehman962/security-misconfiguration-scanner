@@ -19,7 +19,11 @@ dist/
 # Test, type-checker, and linter caches
 .pytest_cache/
 .mypy_cache/
+.pyright/
+.pyre/
 .ruff_cache/
+.tox/
+.nox/
 .coverage
 .coverage.*
 htmlcov/
@@ -36,6 +40,12 @@ htmlcov/
 *.swo
 .DS_Store
 Thumbs.db
+
+# Local run output
+*.log
+reports/
+output/
+tmp/
 
 # Local Codex/agent workspace files
 .codex/
