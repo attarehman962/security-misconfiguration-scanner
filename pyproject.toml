@@ -3,7 +3,10 @@ name = "security-misconfiguration-scanner"
 version = "0.1.0"
 description = "Python security misconfiguration scanner portfolio project."
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "cryptography>=46.0.5",
+    "httpx>=0.27.0",
+]
 
 [project.optional-dependencies]
 dev = [

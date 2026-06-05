@@ -1,0 +1,4 @@
+https://example.com
+http://example.com
+https://google.com
+https://expired.badssl.com

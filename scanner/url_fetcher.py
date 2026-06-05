@@ -36,6 +36,7 @@ class UrlFetcher:
             UrlScanResult containing HTTP and TLS metadata.
         """
         normalized_url = normalize_url(url)
+        ssl_error: str | None
 
         try:
             ssl_expiry = get_ssl_expiry_date(normalized_url)
@@ -43,7 +44,7 @@ class UrlFetcher:
             ssl_expiry = None
             ssl_error = str(exc)
         else:
-            ssl_error = "None"
+            ssl_error = None
 
         try:
             with httpx.Client(

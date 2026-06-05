@@ -1,6 +1,6 @@
 """Runnable demo for Day 01 scanner models."""
 
-from misconfig_scanner.models import Scanner
+from .models import Scanner
 
 
 def main() -> None:

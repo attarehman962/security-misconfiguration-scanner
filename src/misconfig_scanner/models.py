@@ -315,6 +315,7 @@ class Scanner:
     def run(self) -> Report:
         """Run built-in scanner checks and return a final report."""
         self.findings.clear()
+        self._seen_keys.clear()
         self.started_at = utc_now()
 
         try:
