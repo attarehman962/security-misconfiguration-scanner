@@ -38,13 +38,13 @@ pluggy==1.6.0
 prompt_toolkit==3.0.52
 pycparser==3.0
 Pygments==2.20.0
-pytest==8.3.2
+pytest==9.0.3
 python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
 python-engineio==4.13.2
 python-socketio==5.16.2
 redis==5.0.7
--e git+https://github.com/attarehman962/security-misconfiguration-scanner@98063db012cc3adb84c70618e5717b267ec0a75a#egg=security_misconfiguration_scanner
+-e git+https://github.com/attarehman962/security-misconfiguration-scanner@ec89f00f340f3ceae0758e8e42dcb72bae06849e#egg=security_misconfiguration_scanner
 simple-websocket==1.1.0
 six==1.17.0
 sniffio==1.3.1
