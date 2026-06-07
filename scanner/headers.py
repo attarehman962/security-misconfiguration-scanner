@@ -4,7 +4,7 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 import json
 
-from security_scanner.models import Finding, Severity
+from scanner.models import Finding, Severity
 
 
 @dataclass(frozen=True, slots=True)
@@ -160,6 +160,7 @@ def check_referrer_policy(headers: Mapping[str, str]) -> Finding:
 def check_permissions_policy(headers: Mapping[str, str]) -> Finding:
     """Check whether Permissions-Policy is present."""
     return _check_required_header(headers, PERMISSIONS_POLICY_RULE)
+
 
 HeaderChecker = Callable[[Mapping[str, str]], Finding]
 

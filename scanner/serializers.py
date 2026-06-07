@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any
 
-from security_scanner.models import Finding, ScanResult
+from scanner.models import Finding, ScanResult
 
 
 def serialize_finding(finding: Finding) -> dict[str, Any]:

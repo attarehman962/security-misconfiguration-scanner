@@ -3,8 +3,8 @@ from urllib.parse import urlsplit
 
 from scanner.ssl_utils import SslCertificateError, get_ssl_expiry_date
 from scanner.url_fetcher import UrlFetcher
-from security_scanner.header_checks import run_header_checks
-from security_scanner.models import Finding, ScanResult, Severity
+from scanner.headers import run_header_checks
+from scanner.models import Finding, ScanResult, Severity
 
 
 def run_full_scan(url: str) -> ScanResult:

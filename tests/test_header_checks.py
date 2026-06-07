@@ -2,7 +2,7 @@
 
 import json
 
-from security_scanner.header_checks import (
+from scanner.headers import (
     findings_to_json,
     run_header_checks,
 )

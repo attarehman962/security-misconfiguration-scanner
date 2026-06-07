@@ -1,9 +1,0 @@
-Metadata-Version: 2.4
-Name: security-misconfiguration-scanner
-Version: 0.1.0
-Summary: Python security misconfiguration scanner portfolio project.
-Requires-Python: >=3.14
-Provides-Extra: dev
-Requires-Dist: mypy==2.1.0; extra == "dev"
-Requires-Dist: pytest==9.0.2; extra == "dev"
-Requires-Dist: ruff==0.15.15; extra == "dev"

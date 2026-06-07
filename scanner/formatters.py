@@ -1,7 +1,7 @@
 import json
 from typing import Any
 
-from security_scanner.models import ScanResult
+from scanner.models import ScanResult
 from scanner.serializers import serialize_scan_result
 
 

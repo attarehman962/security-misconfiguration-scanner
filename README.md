@@ -1,89 +1,119 @@
 Security Misconfiguration Scanner
 =================================
 
-This is a Python security portfolio project. It checks basic web security
-configuration signals for one URL or many URLs. The goal is to show that I can
-build a small command-line security tool with clean models, network fetching,
-SSL inspection, batch processing, and type checking.
+A Python command-line security scanner for basic web misconfiguration checks.
 
-This project is for learning, portfolio, and authorized testing only. Do not
-scan systems you do not own or do not have permission to test.
+The project is now merged into one main package:
 
-What I Am Doing In This Project
--------------------------------
+```text
+scanner/
+```
 
-I am building a simple scanner that helps identify common security
-misconfigurations on websites. The scanner does not exploit anything. It only
-collects public metadata and reports whether the target looks safe or risky in
-basic areas.
+The supported command is:
 
-The project currently checks:
+```bash
+python -m scanner --url https://example.com --format table
+```
 
-- Whether a URL is reachable.
-- What final URL is reached after redirects.
-- What HTTP status code is returned.
-- What response headers are returned.
-- Whether an HTTPS certificate has an expiry date.
-- Whether the SSL certificate is expired, expiring soon, healthy, or unknown.
-- Whether important security headers are missing.
-- Whether a target uses insecure HTTP instead of HTTPS.
-- Multiple URLs from a file without crashing the whole run if one URL fails.
+This project is for learning, portfolio work, and authorized testing only. Do
+not scan systems you do not own or do not have permission to test.
 
-Main Idea
----------
+What This Project Does
+----------------------
 
-The project is split into small tools:
+The scanner checks one target URL and reports:
 
-- `main.py` fetches metadata for one URL.
-- `batch_scan.py` scans many URLs from `urls.txt`.
-- `ssl_classifier.py` checks SSL certificate expiry risk.
-- `security_headers.py` checks for important HTTP security headers.
-- `security_scanner/header_checks.py` provides reusable header-check functions
-  that are covered by pytest tests.
-- `src/misconfig_scanner/demo.py` runs the core domain model demo and prints a
-  JSON report.
+- whether the URL can be fetched
+- the final URL after redirects
+- common missing security headers
+- whether the target uses HTTPS
+- whether the SSL certificate can be inspected
+- whether the SSL certificate is expired or close to expiry
+- a simple total security score
+- structured findings in table or JSON format
 
-The lower-level scanner package contains reusable code:
+Current Architecture
+--------------------
 
-- `scanner/url_fetcher.py` handles URL fetching with `httpx`.
-- `scanner/ssl_utils.py` handles SSL certificate expiry lookup.
-- `scanner/models.py` defines the URL scan result model.
+```text
+Terminal user
+    |
+    | python -m scanner --url https://example.com --format table
+    v
+scanner/cli.py
+    argparse + output handling
+    |
+    | validated URL
+    v
+scanner/runner.py
+    run_full_scan()
+    |
+    |----------------------------|-----------------------------|
+    v                            v                             v
+scanner/url_fetcher.py       scanner/ssl_utils.py          scanner/headers.py
+fetches URL + headers        checks SSL expiry             runs header checks
+    |                            |                             |
+    |----------------------------|-----------------------------|
+                                 v
+scanner/models.py
+    ScanResult + list[Finding]
+    |
+    v
+scanner/serializers.py
+    dataclasses -> dictionaries
+    |
+    |----------------------------|
+    v                            v
+scanner/formatters.py        scanner/formatters.py
+JSON output                  table output
+```
 
-The `src/misconfig_scanner/` package contains the portfolio-style domain
-models:
+Project Layout
+--------------
 
-- `Finding`
-- `Report`
-- `Scanner`
-- `RiskScore`
+```text
+scanner/
+  __main__.py       Runs the CLI when using python -m scanner
+  cli.py            Parses command-line args and handles output
+  runner.py         Coordinates the full scan
+  url_fetcher.py    Fetches the URL with httpx
+  ssl_utils.py      Reads SSL certificate expiry
+  headers.py        Checks required security headers
+  models.py         UrlScanResult, Finding, ScanResult, Severity
+  serializers.py    Converts results to JSON-safe dictionaries
+  formatters.py     Formats output as JSON or table
+  validators.py     Validates CLI URLs
+  exceptions.py     Scanner exception types
 
-These models are used to show how findings can be validated, serialized to
-JSON, counted by severity, and used for a simple security gate.
+tests/
+  test_cli.py
+  test_formatters.py
+  test_header_checks.py
+  test_validators.py
+```
 
-Features
---------
+Removed Old/Duplicate Files
+---------------------------
 
-- Single URL scanning.
-- Batch URL scanning.
-- SSL expiry classification.
-- Security header checking.
-- JSON report generation.
-- Basic severity scoring.
-- Type hints and mypy support.
-- Simple command-line interface.
-- Safe error handling for failed URLs.
+The project used to have several separate demo scripts and duplicate packages.
+Those have been removed so the codebase has one clear path:
 
-Requirements
+```text
+python -m scanner
+```
+
+Removed duplicate/old surfaces:
+
+- `main.py`
+- `batch_scan.py`
+- `ssl_classifier.py`
+- `security_headers.py`
+- `security_scanner/`
+- `src/misconfig_scanner/`
+- `urls.txt`
+
+Installation
 ------------
-
-- Python 3.14+
-- `httpx`
-- `cryptography`
-- `mypy` for type checking
-- `pytest` for the header-check test suite
-
-Setup
------
 
 Create and activate a virtual environment:
 
@@ -92,96 +122,103 @@ python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-Install dependencies from `requirements.txt`:
+Install dependencies:
 
 ```bash
 python -m pip install -r requirements.txt
 ```
 
-Or install the project from `pyproject.toml`:
+Or install the package in editable mode:
 
 ```bash
 python -m pip install -e .
 ```
 
-Important: use the virtual environment before running the scanner. On this
-machine, `httpx` is installed in `.venv`, not necessarily in the system Python.
+Usage
+-----
+
+Run a scan and print a table:
 
 ```bash
-source .venv/bin/activate
+python -m scanner --url https://example.com --format table
 ```
 
-How To Run
+Run a scan and print JSON:
+
+```bash
+python -m scanner --url https://example.com --format json
+```
+
+Run a scan, print a table, and save JSON to a file:
+
+```bash
+python -m scanner --url https://example.com --format table --output result.json
+```
+
+Show CLI help:
+
+```bash
+python -m scanner --help
+```
+
+Output Formats
+--------------
+
+Table output is meant for terminal reading:
+
+```text
+Scan result for: https://example.com
+Timestamp: 2026-06-07T12:00:00+00:00
+Total score: 80
+
++---------------------------+--------+----------+-------------------------+
+| Header                    | Passed | Severity | Message                 |
++---------------------------+--------+----------+-------------------------+
+| Strict-Transport-Security | False  | High     | HSTS header is missing. |
++---------------------------+--------+----------+-------------------------+
+```
+
+JSON output is meant for saving, scripting, or later report generation:
+
+```json
+{
+  "findings": [],
+  "timestamp": "2026-06-07T12:00:00+00:00",
+  "total_score": 100,
+  "url": "https://example.com"
+}
+```
+
+Data Model
 ----------
 
-### 1. Fetch one URL
+`Finding` represents one check result:
 
-Use `main.py` to fetch the URL, final redirected URL, status code, SSL expiry,
-and response headers.
-
-```bash
-python main.py https://example.com
+```python
+Finding(
+    header="Content-Security-Policy",
+    passed=False,
+    severity="High",
+    message="Missing Content-Security-Policy header.",
+    remediation="Add Content-Security-Policy header.",
+)
 ```
 
-Example output shape:
+`ScanResult` represents the whole scan for one URL:
 
-```text
-Input URL: https://example.com
-Final URL: https://example.com
-Status Code: 200
-SSL Expiry UTC: 2026-01-01T00:00:00+00:00
-Successful: True
-
-Response Headers:
-content-type: text/html
-...
+```python
+ScanResult(
+    url="https://example.com",
+    timestamp=...,
+    total_score=80,
+    findings=[finding],
+)
 ```
 
-### 2. Scan many URLs
+Security Header Checks
+----------------------
 
-Use `batch_scan.py` with a URL list file:
-
-```bash
-python batch_scan.py urls.txt
-```
-
-The batch scanner reads one URL per line and prints a table.
-
-Example `urls.txt`:
-
-```text
-https://example.com
-http://example.com
-https://google.com
-https://expired.badssl.com
-```
-
-Blank lines are skipped. Lines that start with `#` are treated as comments.
-
-### 3. Check SSL expiry risk
-
-Use `ssl_classifier.py` to classify the SSL certificate status:
-
-```bash
-python ssl_classifier.py https://example.com
-```
-
-Possible SSL statuses:
-
-- `HEALTHY`: certificate is valid and not close to expiry.
-- `EXPIRING_SOON`: certificate expires within 30 days.
-- `EXPIRED`: certificate expiry date is already in the past.
-- `UNKNOWN`: expiry could not be fetched, or the target is not HTTPS.
-
-### 4. Check security headers
-
-Use `security_headers.py` to check common security headers:
-
-```bash
-python security_headers.py https://example.com
-```
-
-Headers checked:
+`scanner/headers.py` checks these headers:
 
 - `Strict-Transport-Security`
 - `Content-Security-Policy`
@@ -190,17 +227,11 @@ Headers checked:
 - `Referrer-Policy`
 - `Permissions-Policy`
 
-Missing headers do not always mean a site is vulnerable, but they are useful
-signals for common hardening gaps.
-
-### 5. Run reusable header checks in Python
-
-The reusable header-check module returns structured `Finding` objects and can
-also serialize them as JSON:
+You can also run header checks directly in Python:
 
 ```bash
 python - <<'PY'
-from security_scanner.header_checks import findings_to_json, run_header_checks
+from scanner.headers import findings_to_json, run_header_checks
 
 headers = {
     "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
@@ -212,231 +243,38 @@ print(findings_to_json(findings))
 PY
 ```
 
-This returns six findings: two passing checks for the headers provided and four
-failing checks for the missing headers.
-
-If your shell does not support heredocs, use a normal Python file or `python -c`.
-
-### 6. Run the core model demo
-
-Use the package demo to generate a JSON report:
-
-```bash
-PYTHONPATH=src python -m misconfig_scanner.demo
-```
-
-This demo creates a scanner for `http://example.com`, detects insecure HTTP,
-and prints a JSON report with:
-
-- scanner name
-- target
-- generated timestamp
-- metadata
-- severity counts
-- security gate result
-- findings
-
-Project Flow
-------------
-
-The scanner flow is:
-
-1. User provides a URL.
-2. The URL is normalized if needed.
-3. The scanner fetches the URL with redirects enabled.
-4. The scanner collects status code, final URL, and headers.
-5. If HTTPS is used, the scanner tries to fetch SSL certificate expiry.
-6. Errors are stored in the result instead of crashing the whole run.
-7. Batch mode repeats this for every URL in the file.
-8. Reports summarize findings and severity counts.
-
-File-by-File Explanation
-------------------------
-
-`main.py`
-
-Runs a single URL scan from the command line. It prints the input URL, final
-URL, status code, SSL expiry, success status, and response headers.
-
-`batch_scan.py`
-
-Reads URLs from a text file and scans them one by one. If one URL fails, the
-program records the error and continues scanning the next URL.
-
-`ssl_classifier.py`
-
-Fetches the SSL certificate expiry date and classifies the risk. This is useful
-for finding certificates that are expired or close to expiry.
-
-`security_headers.py`
-
-Fetches a URL and checks whether common hardening headers are present.
-
-`security_scanner/header_checks.py`
-
-Contains reusable security header check functions:
-
-- `run_header_checks(headers)`
-- `findings_to_json(findings)`
-- `check_strict_transport_security(headers)`
-- `check_content_security_policy(headers)`
-- `check_x_frame_options(headers)`
-- `check_x_content_type_options(headers)`
-- `check_referrer_policy(headers)`
-- `check_permissions_policy(headers)`
-
-`security_scanner/models.py`
-
-Contains the `Finding` dataclass used by the reusable header-check module.
-
-`scanner/url_fetcher.py`
-
-Contains `UrlFetcher`, the reusable class that performs HTTP requests using
-`httpx`.
-
-`scanner/ssl_utils.py`
-
-Contains SSL helper functions for extracting hostname and port and fetching
-certificate expiry dates.
-
-`scanner/models.py`
-
-Contains `UrlScanResult`, the data object returned by the URL fetcher.
-
-`src/misconfig_scanner/models.py`
-
-Contains the core domain objects for a structured security report:
-
-- `Severity`
-- `Finding`
-- `Report`
-- `Scanner`
-- `RiskScore`
-
-`src/misconfig_scanner/scanner.py`
-
-Provides a compatibility scanner interface used by `batch_scan.py`.
-
-`urls.txt`
-
-Example input file for batch scanning.
-
-`tests/test_header_checks.py`
-
-Pytest tests for the reusable security header checks. These tests verify that
-all headers pass when present, all headers fail when missing, partial headers
-produce mixed results, header names are case-insensitive, and findings serialize
-to valid JSON.
-
 Development Checks
 ------------------
 
 Compile all Python files:
 
 ```bash
-python -m compileall src scanner main.py batch_scan.py ssl_classifier.py security_headers.py
+python -m compileall scanner tests
 ```
 
-Run mypy on the main scanner code:
+Run mypy:
 
 ```bash
-mypy --explicit-package-bases scanner main.py batch_scan.py src/misconfig_scanner
+mypy scanner tests
 ```
 
-Run mypy on the reusable header checks and SSL classifier:
-
-```bash
-mypy security_scanner tests
-mypy ssl_classifier.py
-```
-
-Run pytest:
+Run tests:
 
 ```bash
 pytest
 ```
 
-Expected pytest result:
+Expected result:
 
 ```text
-5 passed
+10 passed
 ```
 
-Pytest is configured in `pyproject.toml`:
+Notes
+-----
 
-```toml
-[tool.pytest.ini_options]
-pythonpath = ["."]
-testpaths = ["tests"]
-```
-
-What This Project Shows
------------------------
-
-This project demonstrates:
-
-- Python command-line tooling.
-- HTTP request handling with `httpx`.
-- SSL certificate inspection.
-- Security header analysis.
-- Reusable header-check functions with pytest coverage.
-- Data modeling with dataclasses.
-- JSON-compatible report generation.
-- Error handling for network tools.
-- Type hints and mypy checking.
-- Basic project packaging with `pyproject.toml`.
-
-Limitations
------------
-
-This is a beginner-friendly scanner. It does not perform deep vulnerability
-testing. It does not attempt exploitation. It does not replace professional
-security tools.
-
-Current limitations:
-
-- Tests currently cover the reusable security header checks only.
-- No HTML report output yet.
-- No database or scan history.
-- No advanced vulnerability checks.
-- Some network results depend on DNS, firewall, TLS, and remote server behavior.
-
-Future Improvements
--------------------
-
-Possible next steps:
-
-- Add pytest tests.
-- Add JSON and CSV output for batch scans.
-- Add HTML report generation.
-- Add more security checks.
-- Add better URL validation.
-- Add logging.
-- Add GitHub Actions for mypy and tests.
-- Add a single unified CLI entry point.
-
-Git Notes
----------
-
-Generated files should not be committed. The `.gitignore` excludes:
-
-- Python bytecode and `__pycache__`
-- virtual environments
-- build outputs
-- mypy, pytest, and ruff caches
-- local `.env` files
-- local editor files
-- local output folders
-
-Before pushing, check:
-
-```bash
-git status
-```
-
-Then commit the useful source files:
-
-```bash
-git add .
-git commit -m "Update security scanner documentation"
-```
+- Network results depend on DNS, TLS, firewall, and the remote server.
+- If a fetch fails, the scanner returns a failed finding instead of crashing.
+- The score starts at 100 and subtracts penalties for failed findings.
+- This is a beginner-friendly scanner, not a replacement for professional
+  vulnerability scanners.
