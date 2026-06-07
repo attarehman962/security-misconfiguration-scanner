@@ -38,6 +38,8 @@ The project is split into small tools:
 - `batch_scan.py` scans many URLs from `urls.txt`.
 - `ssl_classifier.py` checks SSL certificate expiry risk.
 - `security_headers.py` checks for important HTTP security headers.
+- `security_scanner/header_checks.py` provides reusable header-check functions
+  that are covered by pytest tests.
 - `src/misconfig_scanner/demo.py` runs the core domain model demo and prints a
   JSON report.
 
@@ -78,7 +80,7 @@ Requirements
 - `httpx`
 - `cryptography`
 - `mypy` for type checking
-- `pytest` is configured, but there are no tests yet
+- `pytest` for the header-check test suite
 
 Setup
 -----
@@ -191,7 +193,31 @@ Headers checked:
 Missing headers do not always mean a site is vulnerable, but they are useful
 signals for common hardening gaps.
 
-### 5. Run the core model demo
+### 5. Run reusable header checks in Python
+
+The reusable header-check module returns structured `Finding` objects and can
+also serialize them as JSON:
+
+```bash
+python - <<'PY'
+from security_scanner.header_checks import findings_to_json, run_header_checks
+
+headers = {
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+    "X-Frame-Options": "DENY",
+}
+
+findings = run_header_checks(headers)
+print(findings_to_json(findings))
+PY
+```
+
+This returns six findings: two passing checks for the headers provided and four
+failing checks for the missing headers.
+
+If your shell does not support heredocs, use a normal Python file or `python -c`.
+
+### 6. Run the core model demo
 
 Use the package demo to generate a JSON report:
 
@@ -246,6 +272,23 @@ for finding certificates that are expired or close to expiry.
 
 Fetches a URL and checks whether common hardening headers are present.
 
+`security_scanner/header_checks.py`
+
+Contains reusable security header check functions:
+
+- `run_header_checks(headers)`
+- `findings_to_json(findings)`
+- `check_strict_transport_security(headers)`
+- `check_content_security_policy(headers)`
+- `check_x_frame_options(headers)`
+- `check_x_content_type_options(headers)`
+- `check_referrer_policy(headers)`
+- `check_permissions_policy(headers)`
+
+`security_scanner/models.py`
+
+Contains the `Finding` dataclass used by the reusable header-check module.
+
 `scanner/url_fetcher.py`
 
 Contains `UrlFetcher`, the reusable class that performs HTTP requests using
@@ -278,6 +321,13 @@ Provides a compatibility scanner interface used by `batch_scan.py`.
 
 Example input file for batch scanning.
 
+`tests/test_header_checks.py`
+
+Pytest tests for the reusable security header checks. These tests verify that
+all headers pass when present, all headers fail when missing, partial headers
+produce mixed results, header names are case-insensitive, and findings serialize
+to valid JSON.
+
 Development Checks
 ------------------
 
@@ -293,9 +343,10 @@ Run mypy on the main scanner code:
 mypy --explicit-package-bases scanner main.py batch_scan.py src/misconfig_scanner
 ```
 
-Run mypy on the SSL classifier:
+Run mypy on the reusable header checks and SSL classifier:
 
 ```bash
+mypy security_scanner tests
 mypy ssl_classifier.py
 ```
 
@@ -305,7 +356,19 @@ Run pytest:
 pytest
 ```
 
-Note: pytest is configured, but this project does not have test files yet.
+Expected pytest result:
+
+```text
+5 passed
+```
+
+Pytest is configured in `pyproject.toml`:
+
+```toml
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+```
 
 What This Project Shows
 -----------------------
@@ -316,6 +379,7 @@ This project demonstrates:
 - HTTP request handling with `httpx`.
 - SSL certificate inspection.
 - Security header analysis.
+- Reusable header-check functions with pytest coverage.
 - Data modeling with dataclasses.
 - JSON-compatible report generation.
 - Error handling for network tools.
@@ -331,7 +395,7 @@ security tools.
 
 Current limitations:
 
-- No automated test suite yet.
+- Tests currently cover the reusable security header checks only.
 - No HTML report output yet.
 - No database or scan history.
 - No advanced vulnerability checks.
