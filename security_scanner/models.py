@@ -1,6 +1,7 @@
 """Shared data models for the security scanner."""
 
 from dataclasses import asdict, dataclass
+from datetime import datetime
 from typing import Literal
 
 
@@ -29,3 +30,22 @@ class Finding:
     def to_dict(self) -> dict[str, str | bool]:
         """Convert the finding into a JSON-serializable dictionary."""
         return asdict(self)
+
+
+@dataclass(frozen=True, slots=True)
+class ScanResult:
+    """Represents the complete result for one scanned URL."""
+
+    url: str
+    timestamp: datetime
+    total_score: int
+    findings: list[Finding]
+
+    def to_dict(self) -> dict[str, str | int | list[dict[str, str | bool]]]:
+        """Convert the scan result into a JSON-serializable dictionary."""
+        return {
+            "url": self.url,
+            "timestamp": self.timestamp.isoformat(),
+            "total_score": self.total_score,
+            "findings": [finding.to_dict() for finding in self.findings],
+        }
