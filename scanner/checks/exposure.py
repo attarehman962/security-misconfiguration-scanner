@@ -82,3 +82,35 @@ def parent_directory_listing_check(response: ResponseLike) -> Finding | None:
         )
 
     return None
+
+
+def check_weak_cors(
+    headers: Mapping[str, str],
+    is_public_api: bool = False,
+) -> Finding:
+    """Check whether wildcard CORS is enabled on a non-public API."""
+    allowed_origin = get_header(headers, "Access-Control-Allow-Origin")
+
+    if allowed_origin == "*" and not is_public_api:
+        return build_finding(
+            header="Weak CORS policy",
+            passed=False,
+            severity=Severity.HIGH,
+            message=(
+                "Access-Control-Allow-Origin is set to '*'. This is risky "
+                "for non-public APIs because any browser origin may read "
+                "allowed cross-origin responses."
+            ),
+            remediation=(
+                "Replace '*' with an explicit allowlist of trusted origins. "
+                "Only use wildcard CORS for intentionally public resources."
+            ),
+        )
+
+    return build_finding(
+        header="Weak CORS policy",
+        passed=True,
+        severity=Severity.INFO,
+        message="Wildcard CORS was not detected.",
+        remediation="No action required.",
+    )
