@@ -7,6 +7,8 @@ from collections.abc import Callable, Mapping
 from typing import Protocol
 from urllib.parse import urljoin
 
+import httpx
+
 from scanner.models import Finding, Severity
 
 
@@ -69,19 +71,13 @@ def parent_directory_listing_check(response: ResponseLike) -> Finding | None:
         return build_finding(
             header="Parent Directory Listing",
             passed=False,
-            severity=Severity.MEDIUM,
-            message=(
-                "The response appears to contain a parent directory listing, "
-                "which may expose sensitive information about the server's "
-                "file structure."
-            ),
-            remediation=(
-                "Ensure that directory listings are disabled on the server "
-                "to prevent unauthorized access to file structure information."
-            ),
+            severity=Severity.MEDIUM,  
+            message="The response appears to contain a parent directory listing, which may expose sensitive information about the server's file structure.",
+            remediation="Ensure that directory listings are disabled on the server to prevent unauthorized access to file structure information.",
         )
 
     return None
+
 
 
 def check_weak_cors(
@@ -97,9 +93,9 @@ def check_weak_cors(
             passed=False,
             severity=Severity.HIGH,
             message=(
-                "Access-Control-Allow-Origin is set to '*'. This is risky "
-                "for non-public APIs because any browser origin may read "
-                "allowed cross-origin responses."
+                "Access-Control-Allow-Origin is set to '*'. "
+                "This is risky for non-public APIs because any browser "
+                "origin may read allowed cross-origin responses."
             ),
             remediation=(
                 "Replace '*' with an explicit allowlist of trusted origins. "
@@ -113,4 +109,71 @@ def check_weak_cors(
         severity=Severity.INFO,
         message="Wildcard CORS was not detected.",
         remediation="No action required.",
+    )
+
+
+def check_server_banner(headers: Mapping[str, str]) -> Finding:
+    """Check whether the Server header leaks server/version information."""
+    server_header = get_header(headers, "Server")
+
+    if server_header is None:
+        return build_finding(
+            header ="Server banner exposure",
+            passed=True,
+            severity=Severity.INFO,
+            message="Server header was not present.",
+            remediation="No action required.",
+        )
+
+    if VERSION_PATTERN.search(server_header):
+        return build_finding(
+            header="Server banner exposure",
+            passed=False,
+            severity=Severity.LOW,
+            message=(
+                f"Server header exposes version information: {server_header}."
+            ),
+            remediation=(
+                "Configure the web server or reverse proxy to hide detailed "
+                "version information from response headers."
+            ),
+        )
+
+    return build_finding(
+        header="Server banner exposure",
+        passed=False,
+        severity=Severity.INFO,
+        message=f"Server header exposes server technology: {server_header}.",
+        remediation=(
+            "Consider hiding or minimizing server banner information in "
+            "production responses."
+        ),
+    )
+
+
+def check_x_powered_by(headers: Mapping[str, str]) -> Finding:
+    """Check whether X-Powered-By leaks framework or runtime details."""
+    powered_by_header = get_header(headers, "X-Powered-By")
+
+    if powered_by_header is None:
+        return build_finding(
+            header="X-Powered-By exposure",
+            passed=True,
+            severity=Severity.INFO,  
+            message="X-Powered-By header was not present.",
+            remediation="No action required.",
+        )
+
+    return build_finding(
+        header="X-Powered-By exposure",
+        passed=False,
+        severity=Severity.LOW,
+        message=(
+            f"X-Powered-By header exposes backend stack information: "
+            f"{powered_by_header}."
+        ),
+        remediation=(
+            "Disable framework/runtime banner headers such as X-Powered-By "
+            "in production."
+        ),
     )
