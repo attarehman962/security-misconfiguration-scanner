@@ -1,39 +1,70 @@
-Security Misconfiguration Scanner
-=================================
+# Security Misconfiguration Scanner
 
-A Python command-line security scanner for basic web misconfiguration checks.
+A Python command-line scanner that checks a web target for common security
+misconfigurations. It fetches the target URL, inspects response headers, checks
+basic TLS certificate health, calculates a simple score, and prints the result
+as a terminal table or JSON.
 
-The project is now merged into one main package:
+This project is intended for learning, portfolio work, and authorized security
+testing only. Only scan systems that you own or have permission to test.
 
-```text
-scanner/
-```
+## What This Project Does
 
-The supported command is:
+The scanner currently checks one target URL at a time and reports:
+
+- Whether the URL can be fetched.
+- The final URL after redirects.
+- Missing or present browser security headers.
+- Whether the target uses HTTPS.
+- Whether the SSL/TLS certificate can be inspected.
+- Whether the SSL/TLS certificate is expired or close to expiry.
+- A simple security score from `0` to `100`.
+- Structured findings with severity, message, and remediation.
+
+## Main Command
 
 ```bash
 python -m scanner --url https://example.com --format table
 ```
 
-This project is for learning, portfolio work, and authorized testing only. Do
-not scan systems you do not own or do not have permission to test.
+You can also output JSON:
 
-What This Project Does
-----------------------
+```bash
+python -m scanner --url https://example.com --format json
+```
 
-The scanner checks one target URL and reports:
+Save the JSON report to a file:
 
-- whether the URL can be fetched
-- the final URL after redirects
-- common missing security headers
-- whether the target uses HTTPS
-- whether the SSL certificate can be inspected
-- whether the SSL certificate is expired or close to expiry
-- a simple total security score
-- structured findings in table or JSON format
+```bash
+python -m scanner --url https://example.com --format table --output result.json
+```
 
-Current Architecture
---------------------
+## Project Structure
+
+```text
+scanner/
+  __init__.py       Package marker
+  __main__.py       Allows running: python -m scanner
+  cli.py            CLI parser, output selection, and report saving
+  runner.py         Main scan pipeline through run_full_scan()
+  url_fetcher.py    Fetches URL metadata with httpx
+  ssl_utils.py      Reads remote SSL/TLS certificate expiry
+  headers.py        Runs security header checks
+  models.py         Dataclasses for UrlScanResult, Finding, and ScanResult
+  serializers.py    Converts dataclasses into JSON-safe dictionaries
+  formatters.py     Formats ScanResult as JSON or a terminal table
+  validators.py     Validates command-line URLs
+  exceptions.py     Project exception types
+
+tests/
+  test_cli.py
+  test_formatters.py
+  test_header_checks.py
+  test_serializers.py
+  test_validators.py
+```
+
+## How The Scanner Works
 
 ```text
 Terminal user
@@ -41,134 +72,109 @@ Terminal user
     | python -m scanner --url https://example.com --format table
     v
 scanner/cli.py
-    argparse + output handling
+    Parses arguments, validates the URL, chooses output format
     |
-    | validated URL
     v
 scanner/runner.py
-    run_full_scan()
+    run_full_scan(url)
     |
     |----------------------------|-----------------------------|
     v                            v                             v
 scanner/url_fetcher.py       scanner/ssl_utils.py          scanner/headers.py
-fetches URL + headers        checks SSL expiry             runs header checks
+Fetch URL and headers        Check TLS certificate          Check headers
     |                            |                             |
     |----------------------------|-----------------------------|
                                  v
 scanner/models.py
-    ScanResult + list[Finding]
+    Build ScanResult with list[Finding]
     |
     v
 scanner/serializers.py
-    dataclasses -> dictionaries
+    Convert dataclasses to dictionaries
     |
     |----------------------------|
     v                            v
 scanner/formatters.py        scanner/formatters.py
-JSON output                  table output
+JSON output                  Table output
 ```
 
-Project Layout
---------------
+## Requirements
 
-```text
-scanner/
-  __main__.py       Runs the CLI when using python -m scanner
-  cli.py            Parses command-line args and handles output
-  runner.py         Coordinates the full scan
-  url_fetcher.py    Fetches the URL with httpx
-  ssl_utils.py      Reads SSL certificate expiry
-  headers.py        Checks required security headers
-  models.py         UrlScanResult, Finding, ScanResult, Severity
-  serializers.py    Converts results to JSON-safe dictionaries
-  formatters.py     Formats output as JSON or table
-  validators.py     Validates CLI URLs
-  exceptions.py     Scanner exception types
+- Python `3.14` or newer
+- `httpx`
+- `cryptography`
+- `pytest`, `mypy`, and `ruff` for development checks
 
-tests/
-  test_cli.py
-  test_formatters.py
-  test_header_checks.py
-  test_validators.py
-```
+The required runtime packages are listed in `requirements.txt` and
+`pyproject.toml`.
 
-Removed Old/Duplicate Files
----------------------------
+## Installation
 
-The project used to have several separate demo scripts and duplicate packages.
-Those have been removed so the codebase has one clear path:
-
-```text
-python -m scanner
-```
-
-Removed duplicate/old surfaces:
-
-- `main.py`
-- `batch_scan.py`
-- `ssl_classifier.py`
-- `security_headers.py`
-- `security_scanner/`
-- `src/misconfig_scanner/`
-- `urls.txt`
-
-Installation
-------------
-
-Create and activate a virtual environment:
+Create a virtual environment:
 
 ```bash
 python3 -m venv .venv
+```
+
+Activate it on Linux or macOS:
+
+```bash
 source .venv/bin/activate
 ```
 
-Install dependencies:
+Install the project dependencies:
 
 ```bash
 python -m pip install -r requirements.txt
 ```
 
-Or install the package in editable mode:
+For editable development installation:
 
 ```bash
 python -m pip install -e .
 ```
 
-Usage
------
-
-Run a scan and print a table:
+If you want the development dependencies from `pyproject.toml`:
 
 ```bash
-python -m scanner --url https://example.com --format table
+python -m pip install -e ".[dev]"
 ```
 
-Run a scan and print JSON:
+## CLI Usage
 
-```bash
-python -m scanner --url https://example.com --format json
-```
-
-Run a scan, print a table, and save JSON to a file:
-
-```bash
-python -m scanner --url https://example.com --format table --output result.json
-```
-
-Show CLI help:
+Show help:
 
 ```bash
 python -m scanner --help
 ```
 
-Output Formats
---------------
+Run a scan in table format:
 
-Table output is meant for terminal reading:
+```bash
+python -m scanner --url https://example.com --format table
+```
+
+Run a scan in JSON format:
+
+```bash
+python -m scanner --url https://example.com --format json
+```
+
+Save a JSON report:
+
+```bash
+python -m scanner --url https://example.com --output result.json
+```
+
+The scanner accepts `http://` and `https://` URLs. The CLI rejects empty URLs,
+unsupported schemes, URLs with spaces, missing hostnames, and fragment-only
+targets such as `#section`.
+
+## Example Table Output
 
 ```text
 Scan result for: https://example.com
-Timestamp: 2026-06-07T12:00:00+00:00
+Timestamp: 2026-06-08T12:00:00+00:00
 Total score: 80
 
 +---------------------------+--------+----------+-------------------------+
@@ -178,47 +184,29 @@ Total score: 80
 +---------------------------+--------+----------+-------------------------+
 ```
 
-JSON output is meant for saving, scripting, or later report generation:
+## Example JSON Output
 
 ```json
 {
-  "findings": [],
-  "timestamp": "2026-06-07T12:00:00+00:00",
-  "total_score": 100,
+  "findings": [
+    {
+      "category": "general",
+      "header": "Content-Security-Policy",
+      "message": "Missing Content-Security-Policy header.",
+      "passed": false,
+      "remediation": "Add Content-Security-Policy header.",
+      "severity": "High"
+    }
+  ],
+  "timestamp": "2026-06-08T12:00:00+00:00",
+  "total_score": 80,
   "url": "https://example.com"
 }
 ```
 
-Data Model
-----------
+## Security Header Checks
 
-`Finding` represents one check result:
-
-```python
-Finding(
-    header="Content-Security-Policy",
-    passed=False,
-    severity="High",
-    message="Missing Content-Security-Policy header.",
-    remediation="Add Content-Security-Policy header.",
-)
-```
-
-`ScanResult` represents the whole scan for one URL:
-
-```python
-ScanResult(
-    url="https://example.com",
-    timestamp=...,
-    total_score=80,
-    findings=[finding],
-)
-```
-
-Security Header Checks
-----------------------
-
-`scanner/headers.py` checks these headers:
+The scanner checks these response headers:
 
 - `Strict-Transport-Security`
 - `Content-Security-Policy`
@@ -227,7 +215,10 @@ Security Header Checks
 - `Referrer-Policy`
 - `Permissions-Policy`
 
-You can also run header checks directly in Python:
+Header names are checked case-insensitively because real HTTP response headers
+can arrive in different letter casing.
+
+You can run the header checks directly:
 
 ```bash
 python - <<'PY'
@@ -243,38 +234,167 @@ print(findings_to_json(findings))
 PY
 ```
 
-Development Checks
-------------------
+The `headers` value is a Python dictionary where each key is a header name and
+each value is the header value:
+
+```python
+{
+    "Header-Name": "header value"
+}
+```
+
+## Data Models
+
+### Finding
+
+A `Finding` represents one check result.
+
+```python
+from scanner.models import Finding
+
+finding = Finding(
+    header="Content-Security-Policy",
+    passed=False,
+    severity="High",
+    message="Missing Content-Security-Policy header.",
+    remediation="Add a Content-Security-Policy header.",
+)
+```
+
+Fields:
+
+- `header`: Name of the header or check.
+- `passed`: `True` when the check passed, `False` when it failed.
+- `severity`: One of `"Low"`, `"Medium"`, or `"High"`.
+- `message`: Human-readable result message.
+- `remediation`: Suggested fix.
+- `category`: Defaults to `"general"`.
+
+### ScanResult
+
+A `ScanResult` represents the complete scan for one URL.
+
+```python
+from datetime import datetime, timezone
+
+from scanner.models import ScanResult
+
+result = ScanResult(
+    url="https://example.com",
+    timestamp=datetime.now(timezone.utc),
+    total_score=80,
+    findings=[finding],
+)
+```
+
+Fields:
+
+- `url`: Final scanned URL.
+- `timestamp`: When the scan result was created.
+- `total_score`: Security score from `0` to `100`.
+- `findings`: List of `Finding` objects.
+
+## Formatters
+
+Use `format_json()` when you want machine-readable output:
+
+```python
+from scanner.formatters import format_json
+
+print(format_json(result))
+```
+
+Use `format_table()` when you want terminal output:
+
+```python
+from scanner.formatters import format_table
+
+print(format_table(result))
+```
+
+## Development Checks
+
+Run the full test suite:
+
+```bash
+.venv/bin/python -B -m pytest
+```
+
+Run type checks:
+
+```bash
+.venv/bin/python -B -m mypy scanner tests
+```
 
 Compile all Python files:
 
 ```bash
-python -m compileall scanner tests
+.venv/bin/python -B -m compileall -q scanner tests
 ```
 
-Run mypy:
+Run Ruff if it is installed:
 
 ```bash
-mypy scanner tests
+.venv/bin/python -B -m ruff check scanner tests
 ```
 
-Run tests:
+## Current Test Coverage
 
-```bash
-pytest
-```
+The test suite covers:
 
-Expected result:
+- CLI JSON output, table output, and file writing.
+- JSON and table formatters.
+- Header checks for passing, failing, partial, and case-insensitive headers.
+- Serializer output for `Finding` and `ScanResult`.
+- URL validation for valid URLs, missing schemes, unsupported schemes, and spaces.
+
+## GitHub Push Commands
+
+Use these commands to commit and push this project to:
 
 ```text
-10 passed
+https://github.com/attarehman962/security-misconfiguration-scanner
 ```
 
-Notes
------
+Check what changed:
 
-- Network results depend on DNS, TLS, firewall, and the remote server.
-- If a fetch fails, the scanner returns a failed finding instead of crashing.
-- The score starts at 100 and subtracts penalties for failed findings.
-- This is a beginner-friendly scanner, not a replacement for professional
-  vulnerability scanners.
+```bash
+git status
+```
+
+Stage the project files:
+
+```bash
+git add README.md pyproject.toml requirements.txt scanner tests .gitignore
+```
+
+Create a commit:
+
+```bash
+git commit -m "Merge scanner package and update tests"
+```
+
+Add the GitHub remote if it does not already exist:
+
+```bash
+git remote add origin https://github.com/attarehman962/security-misconfiguration-scanner.git
+```
+
+If the remote already exists, update it:
+
+```bash
+git remote set-url origin https://github.com/attarehman962/security-misconfiguration-scanner.git
+```
+
+Push to GitHub:
+
+```bash
+git push -u origin main
+```
+
+## Notes
+
+- This is not a replacement for professional security testing.
+- Results depend on network access and the target server response.
+- Some websites block automated clients, redirects, or TLS inspection.
+- Only use this scanner on targets you are allowed to test.
