@@ -2,7 +2,7 @@ import json
 from datetime import datetime, timezone
 
 from scanner.formatters import format_json, format_table
-from scanner.models import Finding, ScanResult
+from scanner.models import Finding, ScanResult, Severity
 
 
 def build_sample_scan_result() -> ScanResult:
@@ -15,7 +15,7 @@ def build_sample_scan_result() -> ScanResult:
     finding = Finding(
         header="Strict-Transport-Security",
         passed=False,
-        severity="High",
+        severity=Severity.HIGH,
         message="HSTS header is missing.",
         remediation="Add Strict-Transport-Security header.",
     )

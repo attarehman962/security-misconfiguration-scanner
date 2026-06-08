@@ -7,7 +7,7 @@ import pytest
 from pytest import CaptureFixture, MonkeyPatch
 
 from scanner import cli
-from scanner.models import Finding, ScanResult
+from scanner.models import Finding, ScanResult, Severity
 
 
 def fake_run_full_scan(url: str) -> ScanResult:
@@ -23,7 +23,7 @@ def fake_run_full_scan(url: str) -> ScanResult:
     finding = Finding(
         header="Content-Security-Policy",
         passed=False,
-        severity="High",
+        severity=Severity.HIGH,
         message="CSP header is missing.",
         remediation="Add a Content-Security-Policy header.",
     )

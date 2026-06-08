@@ -255,12 +255,12 @@ each value is the header value:
 A `Finding` represents one check result.
 
 ```python
-from scanner.models import Finding
+from scanner.models import Finding, Severity
 
 finding = Finding(
     header="Content-Security-Policy",
     passed=False,
-    severity="High",
+    severity=Severity.HIGH,
     message="Missing Content-Security-Policy header.",
     remediation="Add a Content-Security-Policy header.",
 )
@@ -270,7 +270,7 @@ Fields:
 
 - `header`: Name of the header or check.
 - `passed`: `True` when the check passed, `False` when it failed.
-- `severity`: One of `"Low"`, `"Medium"`, or `"High"`.
+- `severity`: One of `Severity.LOW`, `Severity.MEDIUM`, or `Severity.HIGH`.
 - `message`: Human-readable result message.
 - `remediation`: Suggested fix.
 - `category`: Defaults to `"general"`.

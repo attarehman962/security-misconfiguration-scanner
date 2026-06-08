@@ -1,11 +1,16 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal
+from enum import Enum
 
 
-Severity = Literal["Low", "Medium", "High"]
+class Severity(str, Enum):
+    """Supported finding severity levels."""
+    INFO = "Info"
+    LOW = "Low"
+    MEDIUM = "Medium"
+    HIGH = "High"
 
 
 @dataclass(frozen=True)
@@ -39,7 +44,14 @@ class Finding:
 
     def to_dict(self) -> dict[str, str | bool]:
         """Convert the finding into a JSON-serializable dictionary."""
-        return asdict(self)
+        return {
+            "header": self.header,
+            "passed": self.passed,
+            "severity": self.severity.value,
+            "message": self.message,
+            "remediation": self.remediation,
+            "category": self.category,
+        }
 
 
 @dataclass(frozen=True, slots=True)

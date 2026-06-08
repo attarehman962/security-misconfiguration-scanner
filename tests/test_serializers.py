@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from scanner.models import Finding, ScanResult
+from scanner.models import Finding, ScanResult, Severity
 from scanner.serializers import serialize_finding, serialize_scan_result
 
 
@@ -11,7 +11,7 @@ def test_serialize_finding_returns_json_safe_values() -> None:
     finding = Finding(
         header="Content-Security-Policy",
         passed=False,
-        severity="High",
+        severity=Severity.HIGH,
         message="CSP header is missing.",
         remediation="Add Content-Security-Policy header.",
     )
@@ -32,7 +32,7 @@ def test_serialize_finding_keeps_severity_as_json_safe_value() -> None:
     finding = Finding(
         header="Strict-Transport-Security",
         passed=False,
-        severity="High",
+        severity=Severity.HIGH,
         message="HSTS header is missing.",
         remediation="Add Strict-Transport-Security header.",
     )
@@ -50,7 +50,7 @@ def test_serialize_scan_result_contains_findings() -> None:
     finding = Finding(
         header="X-Frame-Options",
         passed=True,
-        severity="Medium",
+        severity=Severity.MEDIUM,
         message="X-Frame-Options header is present.",
         remediation="No action required.",
     )

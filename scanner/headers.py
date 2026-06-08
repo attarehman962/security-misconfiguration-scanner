@@ -56,7 +56,7 @@ def _check_required_header(
 
 STRICT_TRANSPORT_SECURITY_RULE = HeaderRule(
     header="Strict-Transport-Security",
-    severity="High",
+    severity=Severity.HIGH,
     success_message="Strict-Transport-Security header is present.",
     failure_message="Missing Strict-Transport-Security header.",
     remediation=(
@@ -69,7 +69,7 @@ STRICT_TRANSPORT_SECURITY_RULE = HeaderRule(
 
 CONTENT_SECURITY_POLICY_RULE = HeaderRule(
     header="Content-Security-Policy",
-    severity="High",
+    severity=Severity.HIGH,
     success_message="Content-Security-Policy header is present.",
     failure_message="Missing Content-Security-Policy header.",
     remediation=(
@@ -82,7 +82,7 @@ CONTENT_SECURITY_POLICY_RULE = HeaderRule(
 
 X_FRAME_OPTIONS_RULE = HeaderRule(
     header="X-Frame-Options",
-    severity="Medium",
+    severity=Severity.MEDIUM,
     success_message="X-Frame-Options header is present.",
     failure_message="Missing X-Frame-Options header.",
     remediation=(
@@ -95,7 +95,7 @@ X_FRAME_OPTIONS_RULE = HeaderRule(
 
 X_CONTENT_TYPE_OPTIONS_RULE = HeaderRule(
     header="X-Content-Type-Options",
-    severity="Medium",
+    severity=Severity.MEDIUM,
     success_message="X-Content-Type-Options header is present.",
     failure_message="Missing X-Content-Type-Options header.",
     remediation=(
@@ -107,7 +107,7 @@ X_CONTENT_TYPE_OPTIONS_RULE = HeaderRule(
 
 REFERRER_POLICY_RULE = HeaderRule(
     header="Referrer-Policy",
-    severity="Low",
+    severity=Severity.LOW,
     success_message="Referrer-Policy header is present.",
     failure_message="Missing Referrer-Policy header.",
     remediation=(
@@ -120,7 +120,7 @@ REFERRER_POLICY_RULE = HeaderRule(
 
 PERMISSIONS_POLICY_RULE = HeaderRule(
     header="Permissions-Policy",
-    severity="Low",
+    severity=Severity.LOW,
     success_message="Permissions-Policy header is present.",
     failure_message="Missing Permissions-Policy header.",
     remediation=(

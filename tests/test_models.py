@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from scanner.models import Finding, ScanResult, UrlScanResult
+from scanner.models import Finding, ScanResult, Severity, UrlScanResult
 
 
 def test_url_scan_result_is_successful_for_2xx_status() -> None:
@@ -33,7 +33,7 @@ def test_finding_to_dict_returns_json_safe_dictionary() -> None:
     finding = Finding(
         header="X-Frame-Options",
         passed=False,
-        severity="Medium",
+        severity=Severity.MEDIUM,
         message="Missing X-Frame-Options header.",
         remediation="Add X-Frame-Options header.",
     )
@@ -52,7 +52,7 @@ def test_scan_result_to_dict_serializes_timestamp_and_findings() -> None:
     finding = Finding(
         header="Referrer-Policy",
         passed=True,
-        severity="Low",
+        severity=Severity.LOW,
         message="Referrer-Policy header is present.",
         remediation="No action required.",
     )

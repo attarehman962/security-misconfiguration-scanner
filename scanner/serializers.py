@@ -17,7 +17,7 @@ def serialize_finding(finding: Finding) -> dict[str, Any]:
     return {
         "header": finding.header,
         "passed": finding.passed,
-        "severity": finding.severity,
+        "severity": finding.severity.value,
         "message": finding.message,
         "remediation": finding.remediation,
         "category": finding.category,

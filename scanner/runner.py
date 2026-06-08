@@ -29,7 +29,7 @@ def run_full_scan(url: str) -> ScanResult:
             Finding(
                 header="http_fetch",
                 passed=False,
-                severity="High",
+                severity=Severity.HIGH,
                 message=f"Could not fetch target URL: {fetch_result.error}",
                 remediation=(
                     "Verify the URL, DNS, network connectivity, firewall, "
@@ -75,7 +75,7 @@ def _build_ssl_finding(url: str) -> Finding | None:
         return Finding(
             header="ssl",
             passed=False,
-            severity="High",
+            severity=Severity.HIGH,
             message="The target is not using HTTPS.",
             remediation=(
                 "Serve the website over HTTPS using a valid TLS certificate. "
@@ -87,7 +87,7 @@ def _build_ssl_finding(url: str) -> Finding | None:
         return Finding(
             header="ssl",
             passed=False,
-            severity="High",
+            severity=Severity.HIGH,
             message="Could not extract hostname for SSL check.",
             remediation="Provide a valid HTTPS URL with a hostname.",
         )
@@ -98,7 +98,7 @@ def _build_ssl_finding(url: str) -> Finding | None:
         return Finding(
             header="ssl",
             passed=False,
-            severity="Medium",
+            severity=Severity.MEDIUM,
             message=f"SSL check failed: {error}",
             remediation=(
                 "Verify that the host is reachable on port 443 and has a "
@@ -110,7 +110,7 @@ def _build_ssl_finding(url: str) -> Finding | None:
         return Finding(
             header="ssl",
             passed=False,
-            severity="Medium",
+            severity=Severity.MEDIUM,
             message="Could not determine SSL certificate expiry.",
             remediation="Verify that the target uses a valid HTTPS certificate.",
         )
@@ -122,7 +122,7 @@ def _build_ssl_finding(url: str) -> Finding | None:
         return Finding(
             header="ssl",
             passed=False,
-            severity="High",
+            severity=Severity.HIGH,
             message="The SSL certificate is expired.",
             remediation=(
                 "Renew and deploy a valid SSL/TLS certificate immediately."
@@ -133,7 +133,7 @@ def _build_ssl_finding(url: str) -> Finding | None:
         return Finding(
             header="ssl",
             passed=False,
-            severity="High",
+            severity=Severity.HIGH,
             message=f"The SSL certificate expires in {days_remaining} days.",
             remediation=(
                 "Renew the SSL/TLS certificate before expiry to avoid browser "
@@ -144,7 +144,7 @@ def _build_ssl_finding(url: str) -> Finding | None:
     return Finding(
         header="ssl",
         passed=True,
-        severity="Low",
+        severity=Severity.LOW,
         message=f"SSL certificate is valid for {days_remaining} more days.",
         remediation="No action required.",
     )
@@ -161,9 +161,9 @@ def _calculate_total_score(findings: list[Finding]) -> int:
         Score between 0 and 100.
     """
     penalty_by_severity: dict[Severity, int] = {
-        "High": 20,
-        "Medium": 10,
-        "Low": 5,
+        Severity.HIGH: 20,
+        Severity.MEDIUM: 10,
+        Severity.LOW: 5,
     }
 
     score = 100

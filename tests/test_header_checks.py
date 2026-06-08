@@ -6,6 +6,7 @@ from scanner.headers import (
     findings_to_json,
     run_header_checks,
 )
+from scanner.models import Severity
 
 
 ALL_REQUIRED_HEADERS = {
@@ -38,12 +39,12 @@ def test_run_header_checks_all_headers_missing_returns_all_failed() -> None:
         for finding in findings
     }
 
-    assert severities_by_header["Strict-Transport-Security"] == "High"
-    assert severities_by_header["Content-Security-Policy"] == "High"
-    assert severities_by_header["X-Frame-Options"] == "Medium"
-    assert severities_by_header["X-Content-Type-Options"] == "Medium"
-    assert severities_by_header["Referrer-Policy"] == "Low"
-    assert severities_by_header["Permissions-Policy"] == "Low"
+    assert severities_by_header["Strict-Transport-Security"] is Severity.HIGH
+    assert severities_by_header["Content-Security-Policy"] is Severity.HIGH
+    assert severities_by_header["X-Frame-Options"] is Severity.MEDIUM
+    assert severities_by_header["X-Content-Type-Options"] is Severity.MEDIUM
+    assert severities_by_header["Referrer-Policy"] is Severity.LOW
+    assert severities_by_header["Permissions-Policy"] is Severity.LOW
 
 
 def test_run_header_checks_partial_headers_returns_mixed_results() -> None:

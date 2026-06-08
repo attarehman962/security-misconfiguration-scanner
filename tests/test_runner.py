@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from pytest import MonkeyPatch
 
 from scanner import runner
-from scanner.models import Finding, ScanResult, UrlScanResult
+from scanner.models import Finding, ScanResult, Severity, UrlScanResult
 from scanner.ssl_utils import SslCertificateError
 
 
@@ -77,7 +77,7 @@ def test_run_full_scan_bridges_fetcher_headers_ssl_and_models(
             Finding(
                 header="header-check",
                 passed=True,
-                severity="Low",
+                severity=Severity.LOW,
                 message="header check passed",
                 remediation="No action required.",
             )
@@ -127,7 +127,7 @@ def test_build_ssl_finding_flags_plain_http() -> None:
     assert finding is not None
     assert finding.header == "ssl"
     assert finding.passed is False
-    assert finding.severity == "High"
+    assert finding.severity is Severity.HIGH
     assert finding.message == "The target is not using HTTPS."
 
 
@@ -148,7 +148,7 @@ def test_build_ssl_finding_handles_ssl_lookup_error(
     assert finding is not None
     assert finding.header == "ssl"
     assert finding.passed is False
-    assert finding.severity == "Medium"
+    assert finding.severity is Severity.MEDIUM
     assert "bad certificate" in finding.message
 
 
@@ -157,7 +157,7 @@ def test_calculate_total_score_never_goes_below_zero() -> None:
         Finding(
             header=f"check-{index}",
             passed=False,
-            severity="High",
+            severity=Severity.HIGH,
             message="failed",
             remediation="fix it",
         )
