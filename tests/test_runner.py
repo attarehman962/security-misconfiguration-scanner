@@ -63,6 +63,49 @@ def test_run_full_scan_combines_header_and_ssl_findings(
     assert result.findings[-1].header == "ssl"
 
 
+def test_run_full_scan_bridges_fetcher_headers_ssl_and_models(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+
+    def fake_run_header_checks(
+        headers: dict[str, str],
+    ) -> list[Finding]:
+        calls.append("headers")
+        assert headers == ALL_REQUIRED_HEADERS
+        return [
+            Finding(
+                header="header-check",
+                passed=True,
+                severity="Low",
+                message="header check passed",
+                remediation="No action required.",
+            )
+        ]
+
+    def fake_get_ssl_expiry_date(url: str) -> datetime:
+        calls.append("ssl")
+        assert url == "https://example.com"
+        return datetime.now(timezone.utc) + timedelta(days=30)
+
+    monkeypatch.setattr(runner, "UrlFetcher", SuccessfulFetcher)
+    monkeypatch.setattr(runner, "run_header_checks", fake_run_header_checks)
+    monkeypatch.setattr(
+        runner,
+        "get_ssl_expiry_date",
+        fake_get_ssl_expiry_date,
+    )
+
+    result = runner.run_full_scan("https://example.com")
+
+    assert isinstance(result, ScanResult)
+    assert calls == ["headers", "ssl"]
+    assert [finding.header for finding in result.findings] == [
+        "header-check",
+        "ssl",
+    ]
+
+
 def test_run_full_scan_returns_fetch_error_result(
     monkeypatch: MonkeyPatch,
 ) -> None:

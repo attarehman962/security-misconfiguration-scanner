@@ -25,6 +25,24 @@ def test_serialize_finding_returns_json_safe_values() -> None:
     assert serialized["category"] == "general"
 
 
+def test_serialize_finding_keeps_severity_as_json_safe_value() -> None:
+    """
+    Verify severity serializes as a plain JSON-safe value.
+    """
+    finding = Finding(
+        header="Strict-Transport-Security",
+        passed=False,
+        severity="High",
+        message="HSTS header is missing.",
+        remediation="Add Strict-Transport-Security header.",
+    )
+
+    serialized = serialize_finding(finding)
+
+    assert serialized["severity"] == "High"
+    assert isinstance(serialized["severity"], str)
+
+
 def test_serialize_scan_result_contains_findings() -> None:
     """
     Verify that ScanResult is converted into a JSON-safe dictionary.

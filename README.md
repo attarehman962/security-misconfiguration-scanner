@@ -348,6 +348,8 @@ Run Ruff if it is installed:
 The test suite covers:
 
 - CLI JSON output, table output, and file writing.
+- CLI help output, invalid URL rejection, and invalid format rejection.
+- CLI argument validation before scanner execution.
 - JSON and table formatters.
 - Header checks for passing, failing, partial, and case-insensitive headers.
 - Main runner behavior for successful scans, fetch errors, SSL findings, and scoring.
