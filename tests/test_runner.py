@@ -24,6 +24,7 @@ class SuccessfulFetcher:
             final_url="https://example.com/final",
             status_code=200,
             headers=ALL_REQUIRED_HEADERS,
+            body="",
             ssl_expiry_utc=None,
             error=None,
         )
@@ -36,9 +37,20 @@ class FailingFetcher:
             final_url=None,
             status_code=None,
             headers={},
+            body="",
             ssl_expiry_utc=None,
             error="connection failed",
         )
+
+
+def fake_run_exposure_checks(
+    base_url: str,
+    base_response: object,
+    fetcher: object,
+    timeout: int = 10,
+    is_public_api: bool = False,
+) -> list[Finding]:
+    return []
 
 
 def test_run_full_scan_combines_header_and_ssl_findings(
@@ -48,6 +60,11 @@ def test_run_full_scan_combines_header_and_ssl_findings(
         return datetime.now(timezone.utc) + timedelta(days=30)
 
     monkeypatch.setattr(runner, "UrlFetcher", SuccessfulFetcher)
+    monkeypatch.setattr(
+        runner,
+        "run_exposure_checks",
+        fake_run_exposure_checks,
+    )
     monkeypatch.setattr(
         runner,
         "get_ssl_expiry_date",
@@ -88,8 +105,34 @@ def test_run_full_scan_bridges_fetcher_headers_ssl_and_models(
         assert url == "https://example.com"
         return datetime.now(timezone.utc) + timedelta(days=30)
 
+    def fake_run_exposure_checks(
+        base_url: str,
+        base_response: object,
+        fetcher: object,
+        timeout: int = 10,
+        is_public_api: bool = False,
+    ) -> list[Finding]:
+        calls.append("exposure")
+        assert base_url == "https://example.com"
+        assert timeout == 10
+        assert is_public_api is False
+        return [
+            Finding(
+                header="exposure-check",
+                passed=True,
+                severity=Severity.INFO,
+                message="exposure check passed",
+                remediation="No action required.",
+            )
+        ]
+
     monkeypatch.setattr(runner, "UrlFetcher", SuccessfulFetcher)
     monkeypatch.setattr(runner, "run_header_checks", fake_run_header_checks)
+    monkeypatch.setattr(
+        runner,
+        "run_exposure_checks",
+        fake_run_exposure_checks,
+    )
     monkeypatch.setattr(
         runner,
         "get_ssl_expiry_date",
@@ -99,9 +142,10 @@ def test_run_full_scan_bridges_fetcher_headers_ssl_and_models(
     result = runner.run_full_scan("https://example.com")
 
     assert isinstance(result, ScanResult)
-    assert calls == ["headers", "ssl"]
+    assert calls == ["headers", "exposure", "ssl"]
     assert [finding.header for finding in result.findings] == [
         "header-check",
+        "exposure-check",
         "ssl",
     ]
 
@@ -172,6 +216,11 @@ def test_run_full_scan_returns_scan_result(monkeypatch: MonkeyPatch) -> None:
         return datetime.now(timezone.utc) + timedelta(days=30)
 
     monkeypatch.setattr(runner, "UrlFetcher", SuccessfulFetcher)
+    monkeypatch.setattr(
+        runner,
+        "run_exposure_checks",
+        fake_run_exposure_checks,
+    )
     monkeypatch.setattr(
         runner,
         "get_ssl_expiry_date",

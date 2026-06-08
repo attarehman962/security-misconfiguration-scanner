@@ -1,65 +1,96 @@
 # Security Misconfiguration Scanner
 
-A Python command-line scanner that checks a web target for common security
-misconfigurations. It fetches the target URL, inspects response headers, checks
-basic TLS certificate health, calculates a simple score, and prints the result
-as a terminal table or JSON.
+A Python command-line scanner for checking common web security
+misconfigurations. The scanner fetches a target URL, checks response headers,
+checks exposure risks, checks basic TLS certificate health, calculates a simple
+score, and prints the result as a table or JSON.
 
-This project is intended for learning, portfolio work, and authorized security
-testing only. Only scan systems that you own or have permission to test.
+This project is for learning, portfolio work, and authorized security testing.
+Only scan systems that you own or have permission to test.
 
-## What This Project Does
+## Quick Start
 
-The scanner currently checks one target URL at a time and reports:
+Create and activate a virtual environment:
 
-- Whether the URL can be fetched.
-- The final URL after redirects.
-- Missing or present browser security headers.
-- Whether the target uses HTTPS.
-- Whether the SSL/TLS certificate can be inspected.
-- Whether the SSL/TLS certificate is expired or close to expiry.
-- A simple security score from `0` to `100`.
-- Structured findings with severity, message, and remediation.
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
 
-## Main Command
+Install dependencies:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+Run the scanner:
 
 ```bash
 python -m scanner --url https://example.com --format table
 ```
 
-You can also output JSON:
+Print JSON:
 
 ```bash
 python -m scanner --url https://example.com --format json
 ```
 
-Save the JSON report to a file:
+Save JSON to a file:
 
 ```bash
-python -m scanner --url https://example.com --format table --output result.json
+python -m scanner --url https://example.com --output result.json
 ```
 
-## Project Structure
+Show help:
+
+```bash
+python -m scanner --help
+```
+
+## What It Checks
+
+The scanner currently checks one URL at a time and reports:
+
+- URL fetch success or failure.
+- Final URL after redirects.
+- HTTP response status code, headers, and body.
+- Browser security headers.
+- Weak CORS configuration.
+- Server banner and `X-Powered-By` exposure.
+- Parent directory listing exposure.
+- Public `/.env` exposure.
+- Public `/.git/config` exposure.
+- HTTP vs HTTPS usage.
+- TLS certificate lookup, expiry, and near-expiry status.
+- A simple total score from `0` to `100`.
+
+## Project Layout
 
 ```text
 scanner/
-  __init__.py       Package marker
-  __main__.py       Allows running: python -m scanner
-  cli.py            CLI parser, output selection, and report saving
-  runner.py         Main scan pipeline through run_full_scan()
-  url_fetcher.py    Fetches URL metadata with httpx
-  ssl_utils.py      Reads remote SSL/TLS certificate expiry
-  headers.py        Runs security header checks
-  models.py         Dataclasses for UrlScanResult, Finding, and ScanResult
-  serializers.py    Converts dataclasses into JSON-safe dictionaries
-  formatters.py     Formats ScanResult as JSON or a terminal table
-  validators.py     Validates command-line URLs
-  exceptions.py     Project exception types
+  __init__.py          Public package exports
+  __main__.py          Entry point for python -m scanner
+  cli.py               argparse CLI, output selection, file saving
+  runner.py            Main orchestration through run_full_scan()
+  validators.py        CLI URL validation
+  url_fetcher.py       Main target fetcher using httpx.Client
+  http_client.py       Small safe fetch helper for extra exposure paths
+  ssl_utils.py         TLS certificate expiry helpers
+  headers.py           Security header checks
+  checks/
+    __init__.py        Checks package marker
+    exposure.py        CORS, banner, directory, .env, and .git checks
+  models.py            Severity, UrlScanResult, Finding, ScanResult
+  serializers.py       Dataclass/enum to JSON-safe dictionaries
+  formatters.py        JSON and terminal table formatting
+  exceptions.py        Project exception types
 
 tests/
   test_cli.py
+  test_exposure_checks.py
   test_formatters.py
   test_header_checks.py
+  test_http_client.py
   test_main.py
   test_models.py
   test_runner.py
@@ -69,111 +100,111 @@ tests/
   test_validators.py
 ```
 
-## How The Scanner Works
+## Complete Workflow
 
 ```text
-Terminal user
-    |
-    | python -m scanner --url https://example.com --format table
-    v
-scanner/cli.py
-    Parses arguments, validates the URL, chooses output format
-    |
-    v
-scanner/runner.py
-    run_full_scan(url)
-    |
-    |----------------------------|-----------------------------|
-    v                            v                             v
-scanner/url_fetcher.py       scanner/ssl_utils.py          scanner/headers.py
-Fetch URL and headers        Check TLS certificate          Check headers
-    |                            |                             |
-    |----------------------------|-----------------------------|
-                                 v
-scanner/models.py
-    Build ScanResult with list[Finding]
-    |
-    v
-scanner/serializers.py
-    Convert dataclasses to dictionaries
-    |
-    |----------------------------|
-    v                            v
-scanner/formatters.py        scanner/formatters.py
-JSON output                  Table output
+1. Terminal user
+   python -m scanner --url https://example.com --format table
+
+2. scanner/__main__.py
+   Calls scanner.cli.main().
+
+3. scanner/cli.py
+   Builds argparse parser.
+   Reads --url, --format, and --output.
+   Calls validate_url() before scanning starts.
+   Calls run_full_scan().
+
+4. scanner/validators.py
+   Rejects invalid URLs:
+   - missing scheme
+   - unsupported scheme
+   - spaces
+   - missing hostname
+   - fragments such as #section
+
+5. scanner/runner.py
+   Coordinates the scan.
+   Calls UrlFetcher().fetch(url).
+   Adds header findings.
+   Adds exposure findings.
+   Adds SSL/TLS finding.
+   Calculates total score.
+   Returns ScanResult.
+
+6. scanner/url_fetcher.py
+   Fetches the main target.
+   Captures final URL, status code, headers, body, SSL expiry, and errors.
+
+7. scanner/headers.py
+   Checks common browser security headers.
+
+8. scanner/checks/exposure.py
+   Checks CORS, server banners, X-Powered-By, directory listing, .env, and
+   .git/config exposure.
+
+9. scanner/http_client.py
+   Performs safe small fetches for extra paths such as /.env and /.git/config.
+
+10. scanner/ssl_utils.py
+    Reads TLS certificate expiry for HTTPS targets.
+
+11. scanner/models.py
+    Stores all results as typed dataclasses and enums.
+
+12. scanner/serializers.py
+    Converts dataclasses and enums into JSON-safe dictionaries.
+
+13. scanner/formatters.py
+    Formats the result as JSON or a terminal table.
+
+14. scanner/cli.py
+    Prints output and optionally writes result.json.
 ```
 
-## Requirements
+Short flow:
 
-- Python `3.14` or newer
-- `httpx`
-- `cryptography`
-- `pytest`, `mypy`, and `ruff` for development checks
-
-The required runtime packages are listed in `requirements.txt` and
-`pyproject.toml`.
-
-## Installation
-
-Create a virtual environment:
-
-```bash
-python3 -m venv .venv
+```text
+__main__.py
+-> cli.py
+-> validators.py
+-> runner.py
+-> url_fetcher.py
+-> headers.py
+-> checks/exposure.py
+-> ssl_utils.py
+-> models.py
+-> serializers.py
+-> formatters.py
+-> terminal or JSON file
 ```
 
-Activate it on Linux or macOS:
+## CLI Details
 
-```bash
-source .venv/bin/activate
+Supported options:
+
+```text
+--url       Required target URL. Must start with http:// or https://.
+--format    Output format. Choices: table, json. Default: table.
+--output    Optional path to save JSON output.
 ```
 
-Install the project dependencies:
+Examples:
 
 ```bash
-python -m pip install -r requirements.txt
-```
-
-For editable development installation:
-
-```bash
-python -m pip install -e .
-```
-
-If you want the development dependencies from `pyproject.toml`:
-
-```bash
-python -m pip install -e ".[dev]"
-```
-
-## CLI Usage
-
-Show help:
-
-```bash
-python -m scanner --help
-```
-
-Run a scan in table format:
-
-```bash
+python -m scanner --url https://example.com
 python -m scanner --url https://example.com --format table
-```
-
-Run a scan in JSON format:
-
-```bash
 python -m scanner --url https://example.com --format json
-```
-
-Save a JSON report:
-
-```bash
 python -m scanner --url https://example.com --output result.json
 ```
 
-The scanner accepts `http://` and `https://` URLs. The CLI rejects empty URLs,
-unsupported schemes, URLs with spaces, missing hostnames, and fragment-only
-targets such as `#section`.
+Invalid format values are rejected by `argparse` before scanning:
+
+```bash
+python -m scanner --url https://example.com --format xml
+```
+
+Invalid URLs are rejected by `validate_url()` before network requests are made.
 
 ## Example Table Output
 
@@ -209,50 +240,27 @@ Total score: 80
 }
 ```
 
-## Security Header Checks
+## Data Models
 
-The scanner checks these response headers:
+### Severity
 
-- `Strict-Transport-Security`
-- `Content-Security-Policy`
-- `X-Frame-Options`
-- `X-Content-Type-Options`
-- `Referrer-Policy`
-- `Permissions-Policy`
-
-Header names are checked case-insensitively because real HTTP response headers
-can arrive in different letter casing.
-
-You can run the header checks directly:
-
-```bash
-python - <<'PY'
-from scanner.headers import findings_to_json, run_header_checks
-
-headers = {
-    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
-    "X-Frame-Options": "DENY",
-}
-
-findings = run_header_checks(headers)
-print(findings_to_json(findings))
-PY
-```
-
-The `headers` value is a Python dictionary where each key is a header name and
-each value is the header value:
+`Severity` is an enum, not a raw string type.
 
 ```python
-{
-    "Header-Name": "header value"
-}
+from scanner.models import Severity
+
+Severity.INFO
+Severity.LOW
+Severity.MEDIUM
+Severity.HIGH
 ```
 
-## Data Models
+The enum prevents spelling mistakes in code. Serializers convert it to plain
+JSON strings such as `"High"`.
 
 ### Finding
 
-A `Finding` represents one check result.
+A `Finding` is one check result.
 
 ```python
 from scanner.models import Finding, Severity
@@ -269,15 +277,51 @@ finding = Finding(
 Fields:
 
 - `header`: Name of the header or check.
-- `passed`: `True` when the check passed, `False` when it failed.
-- `severity`: One of `Severity.LOW`, `Severity.MEDIUM`, or `Severity.HIGH`.
-- `message`: Human-readable result message.
+- `passed`: `True` if the check passed, `False` if it failed.
+- `severity`: `Severity.INFO`, `LOW`, `MEDIUM`, or `HIGH`.
+- `message`: Human-readable result.
 - `remediation`: Suggested fix.
 - `category`: Defaults to `"general"`.
 
+### UrlScanResult
+
+`UrlScanResult` stores the main target fetch data:
+
+```text
+input_url
+final_url
+status_code
+headers
+body
+ssl_expiry_utc
+error
+```
+
+The `body` field is required because exposure checks need to inspect the
+response body for directory listing patterns.
+
+### FetchResult
+
+`FetchResult` in `scanner/http_client.py` is a smaller safe fetch result used
+for extra paths:
+
+```text
+url
+status_code
+headers
+body
+```
+
+It is used by exposure checks for paths such as:
+
+```text
+/.env
+/.git/config
+```
+
 ### ScanResult
 
-A `ScanResult` represents the complete scan for one URL.
+`ScanResult` is the final result returned by the scanner:
 
 ```python
 from datetime import datetime, timezone
@@ -292,37 +336,163 @@ result = ScanResult(
 )
 ```
 
-Fields:
+## Checks
 
-- `url`: Final scanned URL.
-- `timestamp`: When the scan result was created.
-- `total_score`: Security score from `0` to `100`.
-- `findings`: List of `Finding` objects.
+### Security Header Checks
 
-## Formatters
+`scanner/headers.py` checks:
 
-Use `format_json()` when you want machine-readable output:
+- `Strict-Transport-Security`
+- `Content-Security-Policy`
+- `X-Frame-Options`
+- `X-Content-Type-Options`
+- `Referrer-Policy`
+- `Permissions-Policy`
 
-```python
-from scanner.formatters import format_json
+Header lookup is case-insensitive because real HTTP header names can arrive in
+different casing.
 
-print(format_json(result))
+Example:
+
+```bash
+python - <<'PY'
+from scanner.headers import findings_to_json, run_header_checks
+
+headers = {
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+    "X-Frame-Options": "DENY",
+}
+
+findings = run_header_checks(headers)
+print(findings_to_json(findings))
+PY
 ```
 
-Use `format_table()` when you want terminal output:
+### Exposure Checks
 
-```python
-from scanner.formatters import format_table
+`scanner/checks/exposure.py` checks:
 
-print(format_table(result))
+- Weak wildcard CORS on non-public APIs.
+- Server header version exposure.
+- `X-Powered-By` framework/runtime exposure.
+- Parent directory listing markers in the body.
+- Public `/.env`.
+- Public `/.git/config`.
+
+Example:
+
+```bash
+python - <<'PY'
+from scanner.checks.exposure import check_weak_cors
+
+finding = check_weak_cors({"Access-Control-Allow-Origin": "*"})
+print(finding.passed)
+print(finding.severity)
+PY
 ```
 
-## Development Checks
+Expected output:
 
-Run the full test suite:
+```text
+False
+Severity.HIGH
+```
+
+Example for `/.env`:
+
+```bash
+python - <<'PY'
+from collections.abc import Mapping
+from dataclasses import dataclass
+
+from scanner.checks.exposure import check_exposed_env
+
+
+@dataclass
+class FakeResponse:
+    status_code: int
+    headers: Mapping[str, str]
+    body: str
+
+
+def fake_fetcher(url: str, timeout: int) -> FakeResponse:
+    return FakeResponse(status_code=200, headers={}, body="SECRET_KEY=test")
+
+
+finding = check_exposed_env("https://example.com", fake_fetcher)
+print(finding.passed)
+print(finding.severity)
+PY
+```
+
+Expected output:
+
+```text
+False
+Severity.HIGH
+```
+
+### SSL/TLS Checks
+
+`scanner/ssl_utils.py` extracts the hostname and port, opens a TLS connection,
+loads the remote certificate with `cryptography`, and reads the certificate
+expiry date.
+
+The runner reports:
+
+- HTTP target instead of HTTPS.
+- SSL lookup failure.
+- Expired certificate.
+- Certificate expiring in 14 days or fewer.
+- Valid certificate.
+
+## Scoring
+
+The score starts at `100`. Failed findings subtract points:
+
+```text
+Severity.HIGH     -20
+Severity.MEDIUM   -10
+Severity.LOW      -5
+Severity.INFO      0
+```
+
+The score never goes below `0`.
+
+This score is intentionally simple. It is useful for learning and quick
+comparison, but it is not a professional risk rating.
+
+## Serialization And Formatting
+
+The scanner keeps internal data typed with dataclasses and enums. Before output,
+`scanner/serializers.py` converts values into JSON-safe dictionaries.
+
+Important conversion:
+
+```text
+Severity.HIGH -> "High"
+datetime      -> ISO timestamp string
+Finding       -> dict
+ScanResult    -> dict
+```
+
+`scanner/formatters.py` then produces:
+
+- Pretty JSON for automation and saved reports.
+- A compact table for terminal use.
+
+## Testing
+
+Run all tests:
 
 ```bash
 .venv/bin/python -B -m pytest
+```
+
+Run only exposure tests:
+
+```bash
+.venv/bin/python -B -m pytest tests/test_exposure_checks.py
 ```
 
 Run type checks:
@@ -337,76 +507,205 @@ Compile all Python files:
 .venv/bin/python -B -m compileall -q scanner tests
 ```
 
-Run Ruff if it is installed:
+Run Ruff if installed:
 
 ```bash
 .venv/bin/python -B -m ruff check scanner tests
 ```
 
-## Current Test Coverage
+Current tests cover:
 
-The test suite covers:
+- CLI help, URL validation, JSON output, table output, and file output.
+- Header checks.
+- Exposure checks.
+- HTTP fetch helper behavior.
+- URL fetcher behavior without live network calls.
+- SSL utility parsing and error handling.
+- Runner orchestration.
+- Models, serializers, and formatters.
+- `python -m scanner` entrypoint.
 
-- CLI JSON output, table output, and file writing.
-- CLI help output, invalid URL rejection, and invalid format rejection.
-- CLI argument validation before scanner execution.
-- JSON and table formatters.
-- Header checks for passing, failing, partial, and case-insensitive headers.
-- Main runner behavior for successful scans, fetch errors, SSL findings, and scoring.
-- URL fetching behavior without live network calls.
-- SSL utility parsing and handled socket/DNS errors.
-- Model helper methods and JSON-safe dictionaries.
-- `python -m scanner` entrypoint behavior.
-- Serializer output for `Finding` and `ScanResult`.
-- URL validation for valid URLs, missing schemes, unsupported schemes, and spaces.
+## Good Practices Used
 
-## GitHub Push Commands
+### One Clear Package
 
-Use these commands to commit and push this project to:
+The project uses one main package:
 
 ```text
-https://github.com/attarehman962/security-misconfiguration-scanner
+scanner/
 ```
 
-Check what changed:
+This avoids confusion from duplicate package names such as
+`security_scanner`, `scanner`, or old demo packages.
+
+### Clear Boundaries
+
+Each module has one main responsibility:
+
+- `cli.py`: command-line interface only.
+- `validators.py`: input validation only.
+- `runner.py`: orchestration only.
+- `headers.py`: header checks only.
+- `checks/exposure.py`: exposure checks only.
+- `url_fetcher.py` and `http_client.py`: HTTP fetching only.
+- `models.py`: data structures only.
+- `serializers.py`: conversion to JSON-safe data only.
+- `formatters.py`: output formatting only.
+
+This keeps the CLI from containing scanner logic and makes each part easier to
+test.
+
+### No Real Network In Unit Tests
+
+Tests use fake fetchers, monkeypatching, and fake response objects. This keeps
+the test suite:
+
+- fast
+- deterministic
+- safe
+- independent from external websites
+
+### Typed Data
+
+The project uses:
+
+- dataclasses for structured results
+- enums for severity levels
+- strict mypy configuration
+- typed function signatures
+
+This catches mismatches such as:
+
+```text
+status vs passed
+description vs message
+check_name vs header
+Severity.CRITICAL vs Severity.HIGH
+```
+
+### Dependency Hygiene
+
+`requirements.txt` contains only dependencies needed by this project:
+
+```text
+cryptography
+httpx
+mypy
+pytest
+ruff
+```
+
+It does not include unrelated packages from a full `pip freeze`, such as Flask,
+Jinja, Celery, Redis, or SQLAlchemy.
+
+### Safe HTTP Behavior
+
+HTTP requests use:
+
+- explicit timeouts
+- redirects enabled where appropriate
+- a scanner user agent
+- error handling for request failures
+
+Exposure path checks fetch only specific root-relative paths:
+
+```text
+/.env
+/.git/config
+```
+
+### JSON-Safe Output
+
+The internal code can use enums and datetimes. The output layer converts those
+objects before JSON formatting, so saved reports contain normal strings and
+booleans.
+
+## Common Development Commands
+
+Check status:
 
 ```bash
 git status
 ```
 
-Stage the project files:
+Run tests:
+
+```bash
+.venv/bin/python -B -m pytest
+```
+
+Run type checks:
+
+```bash
+.venv/bin/python -B -m mypy scanner tests
+```
+
+Run one CLI command:
+
+```bash
+.venv/bin/python -m scanner --url https://example.com --format table
+```
+
+Save JSON:
+
+```bash
+.venv/bin/python -m scanner --url https://example.com --output result.json
+```
+
+## GitHub Push Commands
+
+Use these commands to push to:
+
+```text
+https://github.com/attarehman962/security-misconfiguration-scanner
+```
+
+Check changes:
+
+```bash
+git status
+```
+
+Stage files:
 
 ```bash
 git add README.md pyproject.toml requirements.txt scanner tests .gitignore
 ```
 
-Create a commit:
+Commit:
 
 ```bash
-git commit -m "Merge scanner package and update tests"
+git commit -m "Update scanner workflow and exposure checks"
 ```
 
-Add the GitHub remote if it does not already exist:
+Add remote if needed:
 
 ```bash
 git remote add origin https://github.com/attarehman962/security-misconfiguration-scanner.git
 ```
 
-If the remote already exists, update it:
+Update remote if it already exists:
 
 ```bash
 git remote set-url origin https://github.com/attarehman962/security-misconfiguration-scanner.git
 ```
 
-Push to GitHub:
+Push:
 
 ```bash
 git push -u origin main
 ```
 
-## Notes
+## Limitations
 
-- This is not a replacement for professional security testing.
-- Results depend on network access and the target server response.
-- Some websites block automated clients, redirects, or TLS inspection.
-- Only use this scanner on targets you are allowed to test.
+- This is not a replacement for professional penetration testing.
+- Results depend on network access and server responses.
+- Some sites block automated clients.
+- Some findings are informational and need human review.
+- The score is a simple educational score, not a compliance grade.
+
+## Responsible Use
+
+Use this scanner only on systems where you have permission. Do not scan random
+public targets, private systems, or third-party infrastructure without written
+authorization.

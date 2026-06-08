@@ -9,6 +9,7 @@ def test_url_scan_result_is_successful_for_2xx_status() -> None:
         final_url="https://example.com",
         status_code=200,
         headers={},
+        body="",
         ssl_expiry_utc=None,
         error=None,
     )
@@ -22,6 +23,7 @@ def test_url_scan_result_is_not_successful_for_error() -> None:
         final_url=None,
         status_code=None,
         headers={},
+        body="",
         ssl_expiry_utc=None,
         error="request failed",
     )

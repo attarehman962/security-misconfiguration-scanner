@@ -1,6 +1,8 @@
 from datetime import datetime, timezone
 from urllib.parse import urlsplit
 
+from scanner.checks.exposure import run_exposure_checks
+from scanner.http_client import FetchResult, fetch_url
 from scanner.ssl_utils import SslCertificateError, get_ssl_expiry_date
 from scanner.url_fetcher import UrlFetcher
 from scanner.headers import run_header_checks
@@ -46,6 +48,24 @@ def run_full_scan(url: str) -> ScanResult:
         )
 
     findings.extend(run_header_checks(fetch_result.headers))
+    if fetch_result.status_code is None:
+        raise RuntimeError("Successful fetch result did not include status code.")
+
+    base_response = FetchResult(
+        url=fetch_result.final_url or url,
+        status_code=fetch_result.status_code,
+        headers=fetch_result.headers,
+        body=fetch_result.body,
+    )
+    findings.extend(
+        run_exposure_checks(
+            base_url=url,
+            base_response=base_response,
+            fetcher=fetch_url,
+            timeout=10,
+            is_public_api=False,
+        )
+    )
 
     ssl_finding = _build_ssl_finding(url)
     if ssl_finding is not None:
@@ -164,6 +184,7 @@ def _calculate_total_score(findings: list[Finding]) -> int:
         Severity.HIGH: 20,
         Severity.MEDIUM: 10,
         Severity.LOW: 5,
+        Severity.INFO: 0,
     }
 
     score = 100

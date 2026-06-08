@@ -59,6 +59,7 @@ class UrlFetcher:
                 final_url=str(response.url),
                 status_code=response.status_code,
                 headers=dict(response.headers),
+                body=response.text,
                 ssl_expiry_utc=ssl_expiry,
                 error=ssl_error,
             )
@@ -69,6 +70,7 @@ class UrlFetcher:
                 final_url=None,
                 status_code=None,
                 headers={},
+                body="",
                 ssl_expiry_utc=ssl_expiry,
                 error=f"HTTP request timed out: {exc}",
             )
@@ -78,6 +80,7 @@ class UrlFetcher:
                 final_url=None,
                 status_code=None,
                 headers={},
+                body="",
                 ssl_expiry_utc=ssl_expiry,
                 error=f"Too many redirects: {exc}",
             )
@@ -92,6 +95,7 @@ class UrlFetcher:
                 final_url=None,
                 status_code=None,
                 headers={},
+                body="",
                 ssl_expiry_utc=ssl_expiry,
                 error=f"HTTP request failed: {combined_error}",
             )

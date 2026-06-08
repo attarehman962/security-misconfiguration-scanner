@@ -16,6 +16,7 @@ class FakeResponse:
     url = "https://example.com/final"
     status_code = 200
     headers = {"Strict-Transport-Security": "max-age=31536000"}
+    text = "response body"
 
 
 class SuccessfulClient:
@@ -82,6 +83,7 @@ def test_url_fetcher_fetch_returns_success_result(
     assert result.status_code == 200
     assert result.ssl_expiry_utc == SSL_EXPIRY
     assert result.headers["Strict-Transport-Security"] == "max-age=31536000"
+    assert result.body == "response body"
     assert result.error is None
 
 

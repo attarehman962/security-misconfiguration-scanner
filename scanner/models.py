@@ -19,6 +19,7 @@ class UrlScanResult:
     final_url: str | None
     status_code: int | None
     headers: dict[str, str]
+    body: str
     ssl_expiry_utc: datetime | None
     error: str | None
 
