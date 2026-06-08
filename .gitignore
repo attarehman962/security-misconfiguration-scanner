@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+.python-version
 
 # Virtual environments
 .venv/
@@ -15,9 +16,12 @@ dist/
 *.egg-info/
 .eggs/
 *.egg
+pip-wheel-metadata/
+wheelhouse/
 
 # Test, type-checker, and linter caches
 .pytest_cache/
+.pytest_tmp/
 .mypy_cache/
 .pyright/
 .pyre/
@@ -26,7 +30,9 @@ dist/
 .nox/
 .coverage
 .coverage.*
+coverage.xml
 htmlcov/
+.hypothesis/
 
 # Local environment files
 .env
@@ -43,9 +49,13 @@ Thumbs.db
 
 # Local run output
 *.log
+result.json
+scan-result.json
+scan_results.json
 reports/
 output/
 tmp/
+temp/
 
 # Local Codex/agent workspace files
 .codex/
