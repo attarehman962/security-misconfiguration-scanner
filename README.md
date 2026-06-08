@@ -60,7 +60,12 @@ tests/
   test_cli.py
   test_formatters.py
   test_header_checks.py
+  test_main.py
+  test_models.py
+  test_runner.py
   test_serializers.py
+  test_ssl_utils.py
+  test_url_fetcher.py
   test_validators.py
 ```
 
@@ -345,6 +350,11 @@ The test suite covers:
 - CLI JSON output, table output, and file writing.
 - JSON and table formatters.
 - Header checks for passing, failing, partial, and case-insensitive headers.
+- Main runner behavior for successful scans, fetch errors, SSL findings, and scoring.
+- URL fetching behavior without live network calls.
+- SSL utility parsing and handled socket/DNS errors.
+- Model helper methods and JSON-safe dictionaries.
+- `python -m scanner` entrypoint behavior.
 - Serializer output for `Finding` and `ScanResult`.
 - URL validation for valid URLs, missing schemes, unsupported schemes, and spaces.
 
