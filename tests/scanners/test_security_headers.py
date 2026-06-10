@@ -6,7 +6,7 @@ from security_scanner.scanners.security_headers import (
     findings_to_json,
     run_header_checks,
 )
-from security_scanner.models import Severity
+from security_scanner.models import Severity, Status
 
 
 ALL_REQUIRED_HEADERS = {
@@ -24,7 +24,7 @@ def test_run_header_checks_all_headers_present_returns_all_passed() -> None:
     findings = run_header_checks(ALL_REQUIRED_HEADERS)
 
     assert len(findings) == 6
-    assert all(finding.passed for finding in findings)
+    assert all(finding.status is Status.PASS for finding in findings)
 
 
 def test_run_header_checks_all_headers_missing_returns_all_failed() -> None:
@@ -32,10 +32,10 @@ def test_run_header_checks_all_headers_missing_returns_all_failed() -> None:
     findings = run_header_checks({})
 
     assert len(findings) == 6
-    assert all(not finding.passed for finding in findings)
+    assert all(finding.status is Status.FAIL for finding in findings)
 
     severities_by_header = {
-        finding.header: finding.severity
+        finding.check_name: finding.severity
         for finding in findings
     }
 
@@ -57,7 +57,7 @@ def test_run_header_checks_partial_headers_returns_mixed_results() -> None:
     findings = run_header_checks(headers)
 
     passed_by_header = {
-        finding.header: finding.passed
+        finding.check_name: finding.status is Status.PASS
         for finding in findings
     }
 
@@ -82,7 +82,7 @@ def test_run_header_checks_header_names_are_case_insensitive() -> None:
 
     findings = run_header_checks(headers)
 
-    assert all(finding.passed for finding in findings)
+    assert all(finding.status is Status.PASS for finding in findings)
 
 
 def test_findings_to_json_returns_valid_json() -> None:
@@ -94,6 +94,6 @@ def test_findings_to_json_returns_valid_json() -> None:
 
     assert isinstance(parsed_output, list)
     assert len(parsed_output) == 6
-    assert parsed_output[0]["header"] == "Strict-Transport-Security"
-    assert parsed_output[0]["passed"] is False
+    assert parsed_output[0]["check_name"] == "Strict-Transport-Security"
+    assert parsed_output[0]["status"] == "Fail"
     assert "remediation" in parsed_output[0]

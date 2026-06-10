@@ -3,7 +3,13 @@ from datetime import datetime, timedelta, timezone
 from pytest import MonkeyPatch
 
 from security_scanner import runner
-from security_scanner.models import Finding, ScanResult, Severity, UrlScanResult
+from security_scanner.models import (
+    Finding,
+    ScanResult,
+    Severity,
+    Status,
+    UrlScanResult,
+)
 from security_scanner.ssl_utils import SslCertificateError
 
 
@@ -76,8 +82,8 @@ def test_run_full_scan_combines_header_and_ssl_findings(
     assert result.url == "https://example.com/final"
     assert result.total_score == 100
     assert len(result.findings) == 7
-    assert all(finding.passed for finding in result.findings)
-    assert result.findings[-1].header == "ssl"
+    assert all(finding.status is Status.PASS for finding in result.findings)
+    assert result.findings[-1].check_name == "ssl"
 
 
 def test_run_full_scan_bridges_fetcher_headers_ssl_and_models(
@@ -92,10 +98,10 @@ def test_run_full_scan_bridges_fetcher_headers_ssl_and_models(
         assert headers == ALL_REQUIRED_HEADERS
         return [
             Finding(
-                header="header-check",
-                passed=True,
+                check_name="header-check",
+                status=Status.PASS,
                 severity=Severity.LOW,
-                message="header check passed",
+                description="header check passed",
                 remediation="No action required.",
             )
         ]
@@ -118,10 +124,10 @@ def test_run_full_scan_bridges_fetcher_headers_ssl_and_models(
         assert is_public_api is False
         return [
             Finding(
-                header="exposure-check",
-                passed=True,
+                check_name="exposure-check",
+                status=Status.PASS,
                 severity=Severity.INFO,
-                message="exposure check passed",
+                description="exposure check passed",
                 remediation="No action required.",
             )
         ]
@@ -143,7 +149,7 @@ def test_run_full_scan_bridges_fetcher_headers_ssl_and_models(
 
     assert isinstance(result, ScanResult)
     assert calls == ["headers", "exposure", "ssl"]
-    assert [finding.header for finding in result.findings] == [
+    assert [finding.check_name for finding in result.findings] == [
         "header-check",
         "exposure-check",
         "ssl",
@@ -160,19 +166,19 @@ def test_run_full_scan_returns_fetch_error_result(
     assert result.url == "https://example.com"
     assert result.total_score == 0
     assert len(result.findings) == 1
-    assert result.findings[0].header == "http_fetch"
-    assert result.findings[0].passed is False
-    assert "connection failed" in result.findings[0].message
+    assert result.findings[0].check_name == "http_fetch"
+    assert result.findings[0].status is Status.FAIL
+    assert "connection failed" in result.findings[0].description
 
 
 def test_build_ssl_finding_flags_plain_http() -> None:
     finding = runner._build_ssl_finding("http://example.com")
 
     assert finding is not None
-    assert finding.header == "ssl"
-    assert finding.passed is False
+    assert finding.check_name == "ssl"
+    assert finding.status is Status.FAIL
     assert finding.severity is Severity.HIGH
-    assert finding.message == "The target is not using HTTPS."
+    assert finding.description == "The target is not using HTTPS."
 
 
 def test_build_ssl_finding_handles_ssl_lookup_error(
@@ -190,19 +196,19 @@ def test_build_ssl_finding_handles_ssl_lookup_error(
     finding = runner._build_ssl_finding("https://example.com")
 
     assert finding is not None
-    assert finding.header == "ssl"
-    assert finding.passed is False
+    assert finding.check_name == "ssl"
+    assert finding.status is Status.FAIL
     assert finding.severity is Severity.MEDIUM
-    assert "bad certificate" in finding.message
+    assert "bad certificate" in finding.description
 
 
 def test_calculate_total_score_never_goes_below_zero() -> None:
     findings = [
         Finding(
-            header=f"check-{index}",
-            passed=False,
+            check_name=f"check-{index}",
+            status=Status.FAIL,
             severity=Severity.HIGH,
-            message="failed",
+            description="failed",
             remediation="fix it",
         )
         for index in range(6)

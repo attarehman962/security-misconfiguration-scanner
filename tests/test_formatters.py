@@ -2,7 +2,7 @@ import json
 from datetime import datetime, timezone
 
 from security_scanner.formatters import format_json, format_table
-from security_scanner.models import Finding, ScanResult, Severity
+from security_scanner.models import Finding, ScanResult, Severity, Status
 
 
 def build_sample_scan_result() -> ScanResult:
@@ -13,10 +13,10 @@ def build_sample_scan_result() -> ScanResult:
         ScanResult with one finding.
     """
     finding = Finding(
-        header="Strict-Transport-Security",
-        passed=False,
+        check_name="Strict-Transport-Security",
+        status=Status.FAIL,
         severity=Severity.HIGH,
-        message="HSTS header is missing.",
+        description="HSTS header is missing.",
         remediation="Add Strict-Transport-Security header.",
     )
 
@@ -46,6 +46,6 @@ def test_format_table_contains_finding_details() -> None:
     output = format_table(build_sample_scan_result())
 
     assert "Strict-Transport-Security" in output
-    assert "False" in output
+    assert "Fail" in output
     assert "High" in output
     assert "HSTS header is missing" in output

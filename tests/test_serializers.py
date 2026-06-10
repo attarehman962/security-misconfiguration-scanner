@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from security_scanner.models import Finding, ScanResult, Severity
+from security_scanner.models import Finding, ScanResult, Severity, Status
 from security_scanner.serializers import serialize_finding, serialize_scan_result
 
 
@@ -9,20 +9,19 @@ def test_serialize_finding_returns_json_safe_values() -> None:
     Verify that Finding fields become JSON-safe values.
     """
     finding = Finding(
-        header="Content-Security-Policy",
-        passed=False,
+        check_name="Content-Security-Policy",
+        status=Status.FAIL,
         severity=Severity.HIGH,
-        message="CSP header is missing.",
+        description="CSP header is missing.",
         remediation="Add Content-Security-Policy header.",
     )
 
     serialized = serialize_finding(finding)
 
-    assert serialized["header"] == "Content-Security-Policy"
-    assert serialized["passed"] is False
+    assert serialized["check_name"] == "Content-Security-Policy"
+    assert serialized["status"] == "Fail"
     assert serialized["severity"] == "High"
-    assert serialized["message"] == "CSP header is missing."
-    assert serialized["category"] == "general"
+    assert serialized["description"] == "CSP header is missing."
 
 
 def test_serialize_finding_keeps_severity_as_json_safe_value() -> None:
@@ -30,10 +29,10 @@ def test_serialize_finding_keeps_severity_as_json_safe_value() -> None:
     Verify severity serializes as a plain JSON-safe value.
     """
     finding = Finding(
-        header="Strict-Transport-Security",
-        passed=False,
+        check_name="Strict-Transport-Security",
+        status=Status.FAIL,
         severity=Severity.HIGH,
-        message="HSTS header is missing.",
+        description="HSTS header is missing.",
         remediation="Add Strict-Transport-Security header.",
     )
 
@@ -48,10 +47,10 @@ def test_serialize_scan_result_contains_findings() -> None:
     Verify that ScanResult is converted into a JSON-safe dictionary.
     """
     finding = Finding(
-        header="X-Frame-Options",
-        passed=True,
+        check_name="X-Frame-Options",
+        status=Status.PASS,
         severity=Severity.MEDIUM,
-        message="X-Frame-Options header is present.",
+        description="X-Frame-Options header is present.",
         remediation="No action required.",
     )
 
@@ -67,4 +66,4 @@ def test_serialize_scan_result_contains_findings() -> None:
     assert serialized["url"] == "https://example.com"
     assert serialized["timestamp"] == "2026-01-01T12:00:00+00:00"
     assert serialized["total_score"] == 100
-    assert serialized["findings"][0]["header"] == "X-Frame-Options"
+    assert serialized["findings"][0]["check_name"] == "X-Frame-Options"

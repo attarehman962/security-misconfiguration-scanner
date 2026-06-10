@@ -4,7 +4,7 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 import json
 
-from security_scanner.models import Finding, Severity
+from security_scanner.models import Finding, Severity, Status
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,21 +36,19 @@ def _check_required_header(
 
     if header_exists:
         return Finding(
-            header=rule.header,
-            passed=True,
+            check_name=rule.header,
+            status=Status.PASS,
             severity=rule.severity,
-            message=rule.success_message,
+            description=rule.success_message,
             remediation="No remediation required.",
-            category="general",
         )
 
     return Finding(
-        header=rule.header,
-        passed=False,
+        check_name=rule.header,
+        status=Status.FAIL,
         severity=rule.severity,
-        message=rule.failure_message,
+        description=rule.failure_message,
         remediation=rule.remediation,
-        category="general",
     )
 
 

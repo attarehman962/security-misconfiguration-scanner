@@ -12,6 +12,10 @@ def test_normalize_url_keeps_existing_http_scheme() -> None:
     assert normalize_url("http://example.com") == "http://example.com"
 
 
+def test_normalize_url_lowercases_existing_scheme() -> None:
+    assert normalize_url("HTTPS://example.com") == "https://example.com"
+
+
 def test_normalize_url_removes_trailing_slash() -> None:
     assert normalize_url("https://example.com/") == "https://example.com"
 
@@ -24,6 +28,16 @@ def test_normalize_url_rejects_empty_value() -> None:
 def test_normalize_url_rejects_spaces() -> None:
     with pytest.raises(InvalidURLError, match="spaces"):
         normalize_url("https://bad url.com")
+
+
+def test_normalize_url_rejects_missing_hostname() -> None:
+    with pytest.raises(InvalidURLError, match="hostname is missing"):
+        normalize_url("https://")
+
+
+def test_normalize_url_rejects_malformed_url() -> None:
+    with pytest.raises(InvalidURLError, match="Malformed URL"):
+        normalize_url("https://example.com:abc")
 
 
 def test_normalize_url_rejects_unsupported_scheme() -> None:

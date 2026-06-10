@@ -14,7 +14,7 @@ from security_scanner.checks.exposure import (
     check_x_powered_by,
     run_exposure_checks,
 )
-from security_scanner.models import Severity
+from security_scanner.models import Severity, Status
 
 
 @dataclass(frozen=True)
@@ -33,7 +33,7 @@ def test_weak_cors_fails_for_wildcard_on_non_public_api() -> None:
         is_public_api=False,
     )
 
-    assert finding.passed is False
+    assert finding.status is Status.FAIL
     assert finding.severity == Severity.HIGH
 
 
@@ -44,7 +44,7 @@ def test_weak_cors_passes_for_public_api() -> None:
         is_public_api=True,
     )
 
-    assert finding.passed is True
+    assert finding.status is Status.PASS
     assert finding.severity == Severity.INFO
 
 
@@ -52,18 +52,18 @@ def test_server_banner_with_version_fails_low() -> None:
     """Verify versioned Server header is detected."""
     finding = check_server_banner(headers={"Server": "Apache/2.4.51"})
 
-    assert finding.passed is False
+    assert finding.status is Status.FAIL
     assert finding.severity == Severity.LOW
-    assert "Apache/2.4.51" in finding.message
+    assert "Apache/2.4.51" in finding.description
 
 
 def test_x_powered_by_header_fails_low() -> None:
     """Verify X-Powered-By exposure is detected."""
     finding = check_x_powered_by(headers={"X-Powered-By": "PHP/7.4"})
 
-    assert finding.passed is False
+    assert finding.status is Status.FAIL
     assert finding.severity == Severity.LOW
-    assert "PHP/7.4" in finding.message
+    assert "PHP/7.4" in finding.description
 
 
 def test_exposed_env_returns_high_on_200() -> None:
@@ -84,7 +84,7 @@ def test_exposed_env_returns_high_on_200() -> None:
         timeout=10,
     )
 
-    assert finding.passed is False
+    assert finding.status is Status.FAIL
     assert finding.severity == Severity.HIGH
 
 
@@ -106,7 +106,7 @@ def test_exposed_git_config_returns_high_on_200() -> None:
         timeout=10,
     )
 
-    assert finding.passed is False
+    assert finding.status is Status.FAIL
     assert finding.severity == Severity.HIGH
 
 
@@ -121,7 +121,7 @@ def test_directory_listing_fails_when_index_marker_exists() -> None:
     )
 
     assert finding is not None
-    assert finding.passed is False
+    assert finding.status is Status.FAIL
     assert finding.severity == Severity.MEDIUM
 
 
@@ -137,7 +137,7 @@ def test_exposed_env_timeout_returns_error_finding() -> None:
         timeout=10,
     )
 
-    assert finding.passed is False
+    assert finding.status is Status.FAIL
     assert finding.severity == Severity.INFO
 
 
@@ -165,24 +165,24 @@ def test_run_exposure_checks_returns_all_day5_findings() -> None:
     )
 
     assert len(findings) == 6
-    assert any(finding.header == "Weak CORS policy" for finding in findings)
+    assert any(finding.check_name == "Weak CORS policy" for finding in findings)
     assert any(
-        finding.header == "Server banner exposure"
+        finding.check_name == "Server banner exposure"
         for finding in findings
     )
     assert any(
-        finding.header == "X-Powered-By exposure"
+        finding.check_name == "X-Powered-By exposure"
         for finding in findings
     )
     assert any(
-        finding.header == "Parent Directory Listing"
+        finding.check_name == "Parent Directory Listing"
         for finding in findings
     )
     assert any(
-        finding.header == "Exposed .env file"
+        finding.check_name == "Exposed .env file"
         for finding in findings
     )
     assert any(
-        finding.header == "Exposed .git/config"
+        finding.check_name == "Exposed .git/config"
         for finding in findings
     )

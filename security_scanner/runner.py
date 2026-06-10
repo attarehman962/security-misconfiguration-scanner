@@ -6,7 +6,7 @@ from security_scanner.http_client import FetchResult, fetch_url
 from security_scanner.ssl_utils import SslCertificateError, get_ssl_expiry_date
 from security_scanner.url_fetcher import UrlFetcher
 from security_scanner.scanners.security_headers import run_header_checks
-from security_scanner.models import Finding, ScanResult, Severity
+from security_scanner.models import Finding, ScanResult, Severity, Status
 
 
 def run_full_scan(url: str) -> ScanResult:
@@ -29,10 +29,10 @@ def run_full_scan(url: str) -> ScanResult:
     if fetch_result.error is not None:
         findings.append(
             Finding(
-                header="http_fetch",
-                passed=False,
+                check_name="http_fetch",
+                status=Status.FAIL,
                 severity=Severity.HIGH,
-                message=f"Could not fetch target URL: {fetch_result.error}",
+                description=f"Could not fetch target URL: {fetch_result.error}",
                 remediation=(
                     "Verify the URL, DNS, network connectivity, firewall, "
                     "and whether the website blocks automated requests."
@@ -93,10 +93,10 @@ def _build_ssl_finding(url: str) -> Finding | None:
 
     if parsed_url.scheme.lower() != "https":
         return Finding(
-            header="ssl",
-            passed=False,
+            check_name="ssl",
+            status=Status.FAIL,
             severity=Severity.HIGH,
-            message="The target is not using HTTPS.",
+            description="The target is not using HTTPS.",
             remediation=(
                 "Serve the website over HTTPS using a valid TLS certificate. "
                 "HTTP exposes users to interception and tampering."
@@ -105,10 +105,10 @@ def _build_ssl_finding(url: str) -> Finding | None:
 
     if parsed_url.hostname is None:
         return Finding(
-            header="ssl",
-            passed=False,
+            check_name="ssl",
+            status=Status.FAIL,
             severity=Severity.HIGH,
-            message="Could not extract hostname for SSL check.",
+            description="Could not extract hostname for SSL check.",
             remediation="Provide a valid HTTPS URL with a hostname.",
         )
 
@@ -116,10 +116,10 @@ def _build_ssl_finding(url: str) -> Finding | None:
         ssl_expiry = get_ssl_expiry_date(url)
     except (SslCertificateError, ValueError) as error:
         return Finding(
-            header="ssl",
-            passed=False,
+            check_name="ssl",
+            status=Status.FAIL,
             severity=Severity.MEDIUM,
-            message=f"SSL check failed: {error}",
+            description=f"SSL check failed: {error}",
             remediation=(
                 "Verify that the host is reachable on port 443 and has a "
                 "valid TLS configuration."
@@ -128,10 +128,10 @@ def _build_ssl_finding(url: str) -> Finding | None:
 
     if ssl_expiry is None:
         return Finding(
-            header="ssl",
-            passed=False,
+            check_name="ssl",
+            status=Status.FAIL,
             severity=Severity.MEDIUM,
-            message="Could not determine SSL certificate expiry.",
+            description="Could not determine SSL certificate expiry.",
             remediation="Verify that the target uses a valid HTTPS certificate.",
         )
 
@@ -140,10 +140,10 @@ def _build_ssl_finding(url: str) -> Finding | None:
 
     if ssl_expiry < now:
         return Finding(
-            header="ssl",
-            passed=False,
+            check_name="ssl",
+            status=Status.FAIL,
             severity=Severity.HIGH,
-            message="The SSL certificate is expired.",
+            description="The SSL certificate is expired.",
             remediation=(
                 "Renew and deploy a valid SSL/TLS certificate immediately."
             ),
@@ -151,10 +151,10 @@ def _build_ssl_finding(url: str) -> Finding | None:
 
     if days_remaining <= 14:
         return Finding(
-            header="ssl",
-            passed=False,
+            check_name="ssl",
+            status=Status.FAIL,
             severity=Severity.HIGH,
-            message=f"The SSL certificate expires in {days_remaining} days.",
+            description=f"The SSL certificate expires in {days_remaining} days.",
             remediation=(
                 "Renew the SSL/TLS certificate before expiry to avoid browser "
                 "warnings and service disruption."
@@ -162,10 +162,10 @@ def _build_ssl_finding(url: str) -> Finding | None:
         )
 
     return Finding(
-        header="ssl",
-        passed=True,
+        check_name="ssl",
+        status=Status.PASS,
         severity=Severity.LOW,
-        message=f"SSL certificate is valid for {days_remaining} more days.",
+        description=f"SSL certificate is valid for {days_remaining} more days.",
         remediation="No action required.",
     )
 
@@ -190,7 +190,7 @@ def _calculate_total_score(findings: list[Finding]) -> int:
     score = 100
 
     for finding in findings:
-        if not finding.passed:
+        if finding.status is Status.FAIL:
             score -= penalty_by_severity[finding.severity]
 
     return max(score, 0)

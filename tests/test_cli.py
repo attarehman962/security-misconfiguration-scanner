@@ -7,7 +7,7 @@ import pytest
 from pytest import CaptureFixture, MonkeyPatch
 
 from security_scanner import cli
-from security_scanner.models import Finding, ScanResult, Severity
+from security_scanner.models import Finding, ScanResult, Severity, Status
 
 
 def fake_run_full_scan(url: str) -> ScanResult:
@@ -21,10 +21,10 @@ def fake_run_full_scan(url: str) -> ScanResult:
         Predictable ScanResult.
     """
     finding = Finding(
-        header="Content-Security-Policy",
-        passed=False,
+        check_name="Content-Security-Policy",
+        status=Status.FAIL,
         severity=Severity.HIGH,
-        message="CSP header is missing.",
+        description="CSP header is missing.",
         remediation="Add a Content-Security-Policy header.",
     )
 
@@ -129,7 +129,7 @@ def test_cli_writes_json_output_file(
 
     assert exit_code == 0
     assert saved_data["url"] == "https://example.com"
-    assert saved_data["findings"][0]["header"] == (
+    assert saved_data["findings"][0]["check_name"] == (
         "Content-Security-Policy"
     )
 

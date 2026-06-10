@@ -15,12 +15,11 @@ def serialize_finding(finding: Finding) -> dict[str, Any]:
         JSON-safe dictionary.
     """
     return {
-        "header": finding.header,
-        "passed": finding.passed,
+        "check_name": finding.check_name,
+        "status": finding.status.value,
         "severity": finding.severity.value,
-        "message": finding.message,
+        "description": finding.description,
         "remediation": finding.remediation,
-        "category": finding.category,
     }
 
 

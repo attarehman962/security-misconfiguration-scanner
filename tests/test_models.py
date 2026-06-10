@@ -1,6 +1,12 @@
 from datetime import datetime, timezone
 
-from security_scanner.models import Finding, ScanResult, Severity, UrlScanResult
+from security_scanner.models import (
+    Finding,
+    ScanResult,
+    Severity,
+    Status,
+    UrlScanResult,
+)
 
 
 def test_url_scan_result_is_successful_for_2xx_status() -> None:
@@ -33,29 +39,28 @@ def test_url_scan_result_is_not_successful_for_error() -> None:
 
 def test_finding_to_dict_returns_json_safe_dictionary() -> None:
     finding = Finding(
-        header="X-Frame-Options",
-        passed=False,
+        check_name="X-Frame-Options",
+        status=Status.FAIL,
         severity=Severity.MEDIUM,
-        message="Missing X-Frame-Options header.",
+        description="Missing X-Frame-Options header.",
         remediation="Add X-Frame-Options header.",
     )
 
     assert finding.to_dict() == {
-        "header": "X-Frame-Options",
-        "passed": False,
+        "check_name": "X-Frame-Options",
+        "status": "Fail",
         "severity": "Medium",
-        "message": "Missing X-Frame-Options header.",
+        "description": "Missing X-Frame-Options header.",
         "remediation": "Add X-Frame-Options header.",
-        "category": "general",
     }
 
 
 def test_scan_result_to_dict_serializes_timestamp_and_findings() -> None:
     finding = Finding(
-        header="Referrer-Policy",
-        passed=True,
+        check_name="Referrer-Policy",
+        status=Status.PASS,
         severity=Severity.LOW,
-        message="Referrer-Policy header is present.",
+        description="Referrer-Policy header is present.",
         remediation="No action required.",
     )
     result = ScanResult(

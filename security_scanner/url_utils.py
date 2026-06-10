@@ -1,6 +1,6 @@
 """Shared URL validation, normalization, and construction utilities."""
 
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin, urlparse, urlunparse
 
 from security_scanner.exceptions import InvalidURLError
 
@@ -34,7 +34,12 @@ def normalize_url(raw_url: str) -> str:
     if "://" not in cleaned_url:
         cleaned_url = f"https://{cleaned_url}"
 
-    parsed_url = urlparse(cleaned_url)
+    try:
+        parsed_url = urlparse(cleaned_url)
+        hostname = parsed_url.hostname
+        _ = parsed_url.port
+    except ValueError as error:
+        raise InvalidURLError(f"Malformed URL: {error}") from error
 
     if parsed_url.scheme.lower() not in ALLOWED_SCHEMES:
         raise InvalidURLError(
@@ -42,10 +47,14 @@ def normalize_url(raw_url: str) -> str:
             "Only http and https are supported."
         )
 
-    if not parsed_url.hostname:
-        raise InvalidURLError(f"Malformed URL: {raw_url}")
+    if hostname is None:
+        raise InvalidURLError("URL hostname is missing.")
 
-    return cleaned_url.rstrip("/")
+    normalized_url = urlunparse(
+        parsed_url._replace(scheme=parsed_url.scheme.lower())
+    )
+
+    return normalized_url.rstrip("/")
 
 
 def build_root_path_url(base_url: str, path: str) -> str:

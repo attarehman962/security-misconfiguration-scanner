@@ -8,7 +8,7 @@ from typing import Protocol
 
 import httpx
 
-from security_scanner.models import Finding, Severity
+from security_scanner.models import Finding, Severity, Status
 from security_scanner.url_utils import build_root_path_url
 
 
@@ -55,18 +55,18 @@ def get_header(headers: Mapping[str, str], header_name: str) -> str | None:
 
 
 def build_finding(
-    header: str,
-    passed: bool,
+    check_name: str,
+    status: Status,
     severity: Severity,
-    message: str,
+    description: str,
     remediation: str,
 ) -> Finding:
     """Create a Finding with consistent field ordering."""
     return Finding(
-        header=header,
-        passed=passed,
+        check_name=check_name,
+        status=status,
         severity=severity,
-        message=message,
+        description=description,
         remediation=remediation,
     )
 
@@ -75,10 +75,10 @@ def parent_directory_listing_check(response: ResponseLike) -> Finding | None:
     """Check for parent directory listing in the response."""
     if any(pattern in response.body for pattern in DIRECTORY_LISTING_PATTERNS):
         return build_finding(
-            header="Parent Directory Listing",
-            passed=False,
+            check_name="Parent Directory Listing",
+            status=Status.FAIL,
             severity=Severity.MEDIUM,
-            message=(
+            description=(
                 "The response appears to contain a parent directory listing, "
                 "which may expose sensitive information about the server's "
                 "file structure."
@@ -101,10 +101,10 @@ def check_weak_cors(
 
     if allowed_origin == "*" and not is_public_api:
         return build_finding(
-            header="Weak CORS policy",
-            passed=False,
+            check_name="Weak CORS policy",
+            status=Status.FAIL,
             severity=Severity.HIGH,
-            message=(
+            description=(
                 "Access-Control-Allow-Origin is set to '*'. "
                 "This is risky for non-public APIs because any browser "
                 "origin may read allowed cross-origin responses."
@@ -116,10 +116,10 @@ def check_weak_cors(
         )
 
     return build_finding(
-        header="Weak CORS policy",
-        passed=True,
+        check_name="Weak CORS policy",
+        status=Status.PASS,
         severity=Severity.INFO,
-        message="Wildcard CORS was not detected.",
+        description="Wildcard CORS was not detected.",
         remediation="No action required.",
     )
 
@@ -130,19 +130,19 @@ def check_server_banner(headers: Mapping[str, str]) -> Finding:
 
     if server_header is None:
         return build_finding(
-            header="Server banner exposure",
-            passed=True,
+            check_name="Server banner exposure",
+            status=Status.PASS,
             severity=Severity.INFO,
-            message="Server header was not present.",
+            description="Server header was not present.",
             remediation="No action required.",
         )
 
     if VERSION_PATTERN.search(server_header):
         return build_finding(
-            header="Server banner exposure",
-            passed=False,
+            check_name="Server banner exposure",
+            status=Status.FAIL,
             severity=Severity.LOW,
-            message=(
+            description=(
                 f"Server header exposes version information: {server_header}."
             ),
             remediation=(
@@ -152,10 +152,10 @@ def check_server_banner(headers: Mapping[str, str]) -> Finding:
         )
 
     return build_finding(
-        header="Server banner exposure",
-        passed=False,
+        check_name="Server banner exposure",
+        status=Status.FAIL,
         severity=Severity.INFO,
-        message=f"Server header exposes server technology: {server_header}.",
+        description=f"Server header exposes server technology: {server_header}.",
         remediation=(
             "Consider hiding or minimizing server banner information in "
             "production responses."
@@ -169,18 +169,18 @@ def check_x_powered_by(headers: Mapping[str, str]) -> Finding:
 
     if powered_by_header is None:
         return build_finding(
-            header="X-Powered-By exposure",
-            passed=True,
+            check_name="X-Powered-By exposure",
+            status=Status.PASS,
             severity=Severity.INFO,
-            message="X-Powered-By header was not present.",
+            description="X-Powered-By header was not present.",
             remediation="No action required.",
         )
 
     return build_finding(
-        header="X-Powered-By exposure",
-        passed=False,
+        check_name="X-Powered-By exposure",
+        status=Status.FAIL,
         severity=Severity.LOW,
-        message=(
+        description=(
             f"X-Powered-By header exposes backend stack information: "
             f"{powered_by_header}."
         ),
@@ -198,10 +198,10 @@ def build_request_error_finding(
 ) -> Finding:
     """Build an error finding for a failed safe HTTP request."""
     return build_finding(
-        header=check_name,
-        passed=False,
+        check_name=check_name,
+        status=Status.FAIL,
         severity=Severity.INFO,
-        message=f"Could not check {target_url}: {error}",
+        description=f"Could not check {target_url}: {error}",
         remediation=(
             "Retry later, verify the target is reachable, and ensure every "
             "request uses a timeout."
@@ -234,10 +234,10 @@ def check_exposed_env(
 
     if response.status_code == 200:
         return build_finding(
-            header="Exposed .env file",
-            passed=False,
+            check_name="Exposed .env file",
+            status=Status.FAIL,
             severity=Severity.HIGH,
-            message=(
+            description=(
                 f"{target_url} returned HTTP 200. Environment files often "
                 "contain database credentials, API keys, JWT secrets, or "
                 "cloud credentials."
@@ -250,10 +250,10 @@ def check_exposed_env(
         )
 
     return build_finding(
-        header="Exposed .env file",
-        passed=True,
+        check_name="Exposed .env file",
+        status=Status.PASS,
         severity=Severity.INFO,
-        message=f"{target_url} did not return HTTP 200.",
+        description=f"{target_url} did not return HTTP 200.",
         remediation="No action required.",
     )
 
@@ -283,10 +283,10 @@ def check_exposed_git_config(
 
     if response.status_code == 200:
         return build_finding(
-            header="Exposed .git/config",
-            passed=False,
+            check_name="Exposed .git/config",
+            status=Status.FAIL,
             severity=Severity.HIGH,
-            message=(
+            description=(
                 f"{target_url} returned HTTP 200. Public Git metadata may "
                 "expose repository details and can indicate source-code "
                 "exposure."
@@ -299,10 +299,10 @@ def check_exposed_git_config(
         )
 
     return build_finding(
-        header="Exposed .git/config",
-        passed=True,
+        check_name="Exposed .git/config",
+        status=Status.PASS,
         severity=Severity.INFO,
-        message=f"{target_url} did not return HTTP 200.",
+        description=f"{target_url} did not return HTTP 200.",
         remediation="No action required.",
     )
 

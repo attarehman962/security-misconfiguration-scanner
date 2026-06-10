@@ -46,13 +46,13 @@ def format_table(scan_result: ScanResult) -> str:
         lines.append("No findings returned.")
         return "\n".join(lines)
 
-    headers = ("Header", "Passed", "Severity", "Message")
+    headers = ("Check", "Status", "Severity", "Description")
     rows = [
         (
-            _truncate(str(finding["header"]), 30),
-            _truncate(str(finding["passed"]), 10),
+            _truncate(str(finding["check_name"]), 30),
+            _truncate(str(finding["status"]), 10),
             _truncate(str(finding["severity"]), 10),
-            _truncate(str(finding["message"]), MAX_COLUMN_WIDTH),
+            _truncate(str(finding["description"]), MAX_COLUMN_WIDTH),
         )
         for finding in findings
     ]

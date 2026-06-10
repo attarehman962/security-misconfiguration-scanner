@@ -84,7 +84,7 @@ security_scanner/
   checks/
     __init__.py        Checks package marker
     exposure.py        CORS, banner, directory, .env, and .git checks
-  models.py            Severity, UrlScanResult, Finding, ScanResult
+  models.py            Severity, Status, UrlScanResult, Finding, ScanResult
   serializers.py       Dataclass/enum to JSON-safe dictionaries
   formatters.py        JSON and terminal table formatting
   exceptions.py        Project exception types
@@ -227,9 +227,9 @@ Timestamp: 2026-06-08T12:00:00+00:00
 Total score: 80
 
 +---------------------------+--------+----------+-------------------------+
-| Header                    | Passed | Severity | Message                 |
+| Check                     | Status | Severity | Description             |
 +---------------------------+--------+----------+-------------------------+
-| Strict-Transport-Security | False  | High     | HSTS header is missing. |
+| Strict-Transport-Security | Fail   | High     | HSTS header is missing. |
 +---------------------------+--------+----------+-------------------------+
 ```
 
@@ -239,12 +239,11 @@ Total score: 80
 {
   "findings": [
     {
-      "category": "general",
-      "header": "Content-Security-Policy",
-      "message": "Missing Content-Security-Policy header.",
-      "passed": false,
+      "check_name": "Content-Security-Policy",
+      "description": "Missing Content-Security-Policy header.",
       "remediation": "Add Content-Security-Policy header.",
-      "severity": "High"
+      "severity": "High",
+      "status": "Fail"
     }
   ],
   "timestamp": "2026-06-08T12:00:00+00:00",
@@ -271,30 +270,42 @@ Severity.HIGH
 The enum prevents spelling mistakes in code. Serializers convert it to plain
 JSON strings such as `"High"`.
 
+### Status
+
+`Status` is an enum for whether a check passed or failed.
+
+```python
+from security_scanner.models import Status
+
+Status.PASS
+Status.FAIL
+```
+
+Serializers convert it to plain JSON strings such as `"Pass"` and `"Fail"`.
+
 ### Finding
 
 A `Finding` is one check result.
 
 ```python
-from security_scanner.models import Finding, Severity
+from security_scanner.models import Finding, Severity, Status
 
 finding = Finding(
-    header="Content-Security-Policy",
-    passed=False,
+    check_name="Content-Security-Policy",
+    status=Status.FAIL,
     severity=Severity.HIGH,
-    message="Missing Content-Security-Policy header.",
+    description="Missing Content-Security-Policy header.",
     remediation="Add a Content-Security-Policy header.",
 )
 ```
 
 Fields:
 
-- `header`: Name of the header or check.
-- `passed`: `True` if the check passed, `False` if it failed.
+- `check_name`: Name of the header or check.
+- `status`: `Status.PASS` if the check passed, `Status.FAIL` if it failed.
 - `severity`: `Severity.INFO`, `LOW`, `MEDIUM`, or `HIGH`.
-- `message`: Human-readable result.
+- `description`: Human-readable result.
 - `remediation`: Suggested fix.
-- `category`: Defaults to `"general"`.
 
 ### UrlScanResult
 
@@ -397,9 +408,10 @@ Example:
 ```bash
 python - <<'PY'
 from security_scanner.checks.exposure import check_weak_cors
+from security_scanner.models import Status
 
 finding = check_weak_cors({"Access-Control-Allow-Origin": "*"})
-print(finding.passed)
+print(finding.status is Status.FAIL)
 print(finding.severity)
 PY
 ```
@@ -407,7 +419,7 @@ PY
 Expected output:
 
 ```text
-False
+True
 Severity.HIGH
 ```
 
@@ -419,6 +431,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 
 from security_scanner.checks.exposure import check_exposed_env
+from security_scanner.models import Status
 
 
 @dataclass
@@ -433,7 +446,7 @@ def fake_fetcher(url: str, timeout: int) -> FakeResponse:
 
 
 finding = check_exposed_env("https://example.com", fake_fetcher)
-print(finding.passed)
+print(finding.status is Status.FAIL)
 print(finding.severity)
 PY
 ```
@@ -441,7 +454,7 @@ PY
 Expected output:
 
 ```text
-False
+True
 Severity.HIGH
 ```
 
@@ -484,6 +497,7 @@ Important conversion:
 
 ```text
 Severity.HIGH -> "High"
+Status.FAIL   -> "Fail"
 datetime      -> ISO timestamp string
 Finding       -> dict
 ScanResult    -> dict

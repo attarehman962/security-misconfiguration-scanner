@@ -13,6 +13,12 @@ class Severity(str, Enum):
     HIGH = "High"
 
 
+class Status(str, Enum):
+    """Supported finding status values."""
+    PASS = "Pass"
+    FAIL = "Fail"
+
+
 @dataclass(frozen=True)
 class UrlScanResult:
     input_url: str
@@ -36,22 +42,20 @@ class UrlScanResult:
 class Finding:
     """Represents one scanner check result."""
 
-    header: str
-    passed: bool
+    check_name: str
+    status: Status
     severity: Severity
-    message: str
+    description: str
     remediation: str
-    category: str = "general"
 
-    def to_dict(self) -> dict[str, str | bool]:
+    def to_dict(self) -> dict[str, str]:
         """Convert the finding into a JSON-serializable dictionary."""
         return {
-            "header": self.header,
-            "passed": self.passed,
+            "check_name": self.check_name,
+            "status": self.status.value,
             "severity": self.severity.value,
-            "message": self.message,
+            "description": self.description,
             "remediation": self.remediation,
-            "category": self.category,
         }
 
 
@@ -64,7 +68,7 @@ class ScanResult:
     total_score: int
     findings: list[Finding]
 
-    def to_dict(self) -> dict[str, str | int | list[dict[str, str | bool]]]:
+    def to_dict(self) -> dict[str, str | int | list[dict[str, str]]]:
         """Convert the scan result into a JSON-serializable dictionary."""
         return {
             "url": self.url,
