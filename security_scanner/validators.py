@@ -1,8 +1,7 @@
 from argparse import ArgumentTypeError
 from urllib.parse import urlsplit
 
-
-ALLOWED_SCHEMES: set[str] = {"http", "https"}
+from security_scanner.url_utils import ALLOWED_SCHEMES
 
 
 def validate_url(value: str) -> str:

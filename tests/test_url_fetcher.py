@@ -6,7 +6,7 @@ import pytest
 
 from security_scanner import url_fetcher
 from security_scanner.ssl_utils import SslCertificateError
-from security_scanner.url_fetcher import UrlFetcher, normalize_url
+from security_scanner.url_fetcher import UrlFetcher
 
 
 SSL_EXPIRY = datetime(2026, 7, 1, tzinfo=timezone.utc)
@@ -47,19 +47,6 @@ class TimeoutClient(SuccessfulClient):
 class RequestErrorClient(SuccessfulClient):
     def get(self, url: str) -> FakeResponse:
         raise httpx.RequestError(f"network error: {url}")
-
-
-def test_normalize_url_adds_https_scheme_when_missing() -> None:
-    assert normalize_url("example.com") == "https://example.com"
-
-
-def test_normalize_url_keeps_existing_scheme() -> None:
-    assert normalize_url("http://example.com") == "http://example.com"
-
-
-def test_normalize_url_rejects_empty_value() -> None:
-    with pytest.raises(ValueError, match="empty"):
-        normalize_url("   ")
 
 
 def test_url_fetcher_fetch_returns_success_result(

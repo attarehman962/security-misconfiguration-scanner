@@ -202,7 +202,7 @@ def test_cli_rejects_invalid_format_before_scanning(
 
 def test_cli_does_not_contain_header_checking_logic() -> None:
     """
-    Verify header checks stay in runner.py/headers.py, not cli.py.
+    Verify header checks stay in runner.py/scanners, not cli.py.
     """
     cli_source = inspect.getsource(cli)
 

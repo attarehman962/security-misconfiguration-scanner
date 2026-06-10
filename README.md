@@ -73,6 +73,7 @@ security_scanner/
   cli.py               argparse CLI, output selection, file saving
   runner.py            Main orchestration through run_full_scan()
   validators.py        CLI URL validation
+  url_utils.py         Shared URL normalization and root-path helpers
   url_fetcher.py       Main target fetcher using httpx.Client
   http_client.py       Small safe fetch helper for extra exposure paths
   ssl_utils.py         TLS certificate expiry helpers
@@ -128,7 +129,13 @@ tests/
    - missing hostname
    - fragments such as #section
 
-5. security_scanner/runner.py
+5. security_scanner/url_utils.py
+   Provides shared URL helpers:
+   - normalize hostnames into URLs for fetchers
+   - reject malformed/unsupported URLs
+   - build root-relative paths such as /.env
+
+6. security_scanner/runner.py
    Coordinates the scan.
    Calls UrlFetcher().fetch(url).
    Adds header findings.
@@ -137,33 +144,33 @@ tests/
    Calculates total score.
    Returns ScanResult.
 
-6. security_scanner/url_fetcher.py
+7. security_scanner/url_fetcher.py
    Fetches the main target.
    Captures final URL, status code, headers, body, SSL expiry, and errors.
 
-7. security_scanner/scanners/security_headers.py
+8. security_scanner/scanners/security_headers.py
    Checks common browser security headers.
 
-8. security_scanner/checks/exposure.py
+9. security_scanner/checks/exposure.py
    Checks CORS, server banners, X-Powered-By, directory listing, .env, and
    .git/config exposure.
 
-9. security_scanner/http_client.py
+10. security_scanner/http_client.py
    Performs safe small fetches for extra paths such as /.env and /.git/config.
 
-10. security_scanner/ssl_utils.py
+11. security_scanner/ssl_utils.py
     Reads TLS certificate expiry for HTTPS targets.
 
-11. security_scanner/models.py
+12. security_scanner/models.py
     Stores all results as typed dataclasses and enums.
 
-12. security_scanner/serializers.py
+13. security_scanner/serializers.py
     Converts dataclasses and enums into JSON-safe dictionaries.
 
-13. security_scanner/formatters.py
+14. security_scanner/formatters.py
     Formats the result as JSON or a terminal table.
 
-14. security_scanner/cli.py
+15. security_scanner/cli.py
     Prints output and optionally writes result.json.
 ```
 
@@ -173,9 +180,10 @@ Short flow:
 __main__.py
 -> cli.py
 -> validators.py
+-> url_utils.py
 -> runner.py
 -> url_fetcher.py
--> headers.py
+-> scanners/security_headers.py
 -> checks/exposure.py
 -> ssl_utils.py
 -> models.py
@@ -541,7 +549,7 @@ security_scanner/
 ```
 
 This avoids confusion from duplicate package names such as
-`security_scanner`, `security_scanner`, or old demo packages.
+`scanner`, `src/misconfig_scanner`, or old demo packages.
 
 ### Clear Boundaries
 
@@ -549,8 +557,9 @@ Each module has one main responsibility:
 
 - `cli.py`: command-line interface only.
 - `validators.py`: input validation only.
+- `url_utils.py`: shared URL normalization and URL construction only.
 - `runner.py`: orchestration only.
-- `headers.py`: header checks only.
+- `scanners/security_headers.py`: header checks only.
 - `checks/exposure.py`: exposure checks only.
 - `url_fetcher.py` and `http_client.py`: HTTP fetching only.
 - `models.py`: data structures only.

@@ -5,11 +5,11 @@ from __future__ import annotations
 import re
 from collections.abc import Callable, Mapping
 from typing import Protocol
-from urllib.parse import urljoin
 
 import httpx
 
 from security_scanner.models import Finding, Severity
+from security_scanner.url_utils import build_root_path_url
 
 
 DEFAULT_TIMEOUT_SECONDS = 10
@@ -52,11 +52,6 @@ def get_header(headers: Mapping[str, str], header_name: str) -> str | None:
             return current_value.strip()
 
     return None
-
-
-def build_root_path_url(base_url: str, path: str) -> str:
-    """Build a root-relative URL such as https://site.com/.env."""
-    return urljoin(base_url, path)
 
 
 def build_finding(

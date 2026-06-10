@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from urllib.parse import urlparse
-
 import httpx
 
+from security_scanner.exceptions import InvalidURLError
 from security_scanner.models import UrlScanResult
 from security_scanner.ssl_utils import SslCertificateError, get_ssl_expiry_date
+from security_scanner.url_utils import normalize_url
 
 
 DEFAULT_TIMEOUT_SECONDS = 10.0
@@ -16,7 +16,7 @@ DEFAULT_USER_AGENT = (
 
 
 class UrlFetcher:
-    """Fetch URL metadata needed by the security security_scanner."""
+    """Fetch URL metadata needed by the security scanner."""
 
     def __init__(self, timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS) -> None:
         """Initialize the URL fetcher.
@@ -35,7 +35,19 @@ class UrlFetcher:
         Returns:
             UrlScanResult containing HTTP and TLS metadata.
         """
-        normalized_url = normalize_url(url)
+        try:
+            normalized_url = normalize_url(url)
+        except InvalidURLError as exc:
+            return UrlScanResult(
+                input_url=url,
+                final_url=None,
+                status_code=None,
+                headers={},
+                body="",
+                ssl_expiry_utc=None,
+                error=f"Invalid URL: {exc}",
+            )
+
         ssl_error: str | None
 
         try:
@@ -99,28 +111,3 @@ class UrlFetcher:
                 ssl_expiry_utc=ssl_expiry,
                 error=f"HTTP request failed: {combined_error}",
             )
-
-
-def normalize_url(url: str) -> str:
-    """Normalize user input into a valid URL.
-
-    Args:
-        url: Raw user input.
-
-    Returns:
-        URL with a scheme added if missing.
-
-    Raises:
-        ValueError: If the URL is empty.
-    """
-    cleaned_url = url.strip()
-
-    if not cleaned_url:
-        raise ValueError("URL cannot be empty")
-
-    parsed_url = urlparse(cleaned_url)
-
-    if not parsed_url.scheme:
-        return f"https://{cleaned_url}"
-
-    return cleaned_url
