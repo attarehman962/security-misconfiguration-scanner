@@ -19,6 +19,8 @@ def validate_url(value: str) -> str:
     """
     cleaned_url = value.strip()
 
+    # CLI validation is intentionally strict so the user sees mistakes before
+    # any scanner network activity starts.
     if not cleaned_url:
         raise ArgumentTypeError("Invalid URL: value cannot be empty.")
 
@@ -28,6 +30,7 @@ def validate_url(value: str) -> str:
     try:
         parsed_url = urlsplit(cleaned_url)
         hostname = parsed_url.hostname
+        # Accessing .port raises ValueError for values such as :abc.
         _ = parsed_url.port
     except ValueError as error:
         raise ArgumentTypeError(f"Invalid URL: {error}") from error
@@ -41,6 +44,8 @@ def validate_url(value: str) -> str:
         raise ArgumentTypeError("Invalid URL: hostname is missing.")
 
     if parsed_url.fragment:
+        # Fragments are browser-only anchors and are never sent to servers, so
+        # scanning them would give a misleading target.
         raise ArgumentTypeError(
             "Invalid URL: fragments like #section are not scan targets."
         )

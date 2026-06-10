@@ -1,3 +1,5 @@
+"""Tests for strict command-line URL validation."""
+
 from argparse import ArgumentTypeError
 
 import pytest
@@ -12,6 +14,7 @@ def test_validate_url_accepts_http_and_https_urls() -> None:
     https_result = validate_url("https://example.com/")
     http_result = validate_url("http://example.com/")
 
+    # CLI validation trims a trailing slash so output stays consistent.
     assert https_result == "https://example.com"
     assert http_result == "http://example.com"
 
@@ -20,6 +23,7 @@ def test_validate_url_rejects_missing_scheme() -> None:
     """
     Verify that a URL without http/https is rejected.
     """
+    # The CLI is stricter than url_utils.normalize_url and requires a scheme.
     with pytest.raises(ArgumentTypeError, match="http:// or https://"):
         validate_url("example.com")
 

@@ -24,6 +24,8 @@ ALL_REQUIRED_HEADERS = {
 
 
 class SuccessfulFetcher:
+    """Fake UrlFetcher that returns a complete successful response."""
+
     def fetch(self, url: str) -> UrlScanResult:
         return UrlScanResult(
             input_url=url,
@@ -37,6 +39,8 @@ class SuccessfulFetcher:
 
 
 class FailingFetcher:
+    """Fake UrlFetcher that simulates a network failure."""
+
     def fetch(self, url: str) -> UrlScanResult:
         return UrlScanResult(
             input_url=url,
@@ -56,6 +60,7 @@ def fake_run_exposure_checks(
     timeout: int = 10,
     is_public_api: bool = False,
 ) -> list[Finding]:
+    """Keep runner tests focused by disabling real exposure probes."""
     return []
 
 
@@ -63,8 +68,10 @@ def test_run_full_scan_combines_header_and_ssl_findings(
     monkeypatch: MonkeyPatch,
 ) -> None:
     def fake_get_ssl_expiry_date(url: str) -> datetime:
+        # Keep SSL deterministic and avoid live network access in unit tests.
         return datetime.now(timezone.utc) + timedelta(days=30)
 
+    # Replace network-facing collaborators with fakes.
     monkeypatch.setattr(runner, "UrlFetcher", SuccessfulFetcher)
     monkeypatch.setattr(
         runner,
@@ -94,6 +101,7 @@ def test_run_full_scan_bridges_fetcher_headers_ssl_and_models(
     def fake_run_header_checks(
         headers: dict[str, str],
     ) -> list[Finding]:
+        # Record call order and verify runner passes fetcher headers through.
         calls.append("headers")
         assert headers == ALL_REQUIRED_HEADERS
         return [
@@ -107,6 +115,7 @@ def test_run_full_scan_bridges_fetcher_headers_ssl_and_models(
         ]
 
     def fake_get_ssl_expiry_date(url: str) -> datetime:
+        # Runner should perform the SSL check against the original target URL.
         calls.append("ssl")
         assert url == "https://example.com"
         return datetime.now(timezone.utc) + timedelta(days=30)
@@ -118,6 +127,7 @@ def test_run_full_scan_bridges_fetcher_headers_ssl_and_models(
         timeout: int = 10,
         is_public_api: bool = False,
     ) -> list[Finding]:
+        # Verify runner builds the bridge object and passes stable defaults.
         calls.append("exposure")
         assert base_url == "https://example.com"
         assert timeout == 10
@@ -163,6 +173,8 @@ def test_run_full_scan_returns_fetch_error_result(
 
     result = runner.run_full_scan("https://example.com")
 
+    # If the main fetch fails, runner returns one clear failure finding instead
+    # of trying checks that need response headers/body.
     assert result.url == "https://example.com"
     assert result.total_score == 0
     assert len(result.findings) == 1
@@ -185,6 +197,7 @@ def test_build_ssl_finding_handles_ssl_lookup_error(
     monkeypatch: MonkeyPatch,
 ) -> None:
     def fake_get_ssl_expiry_date(url: str) -> datetime:
+        # Force the SSL helper error path without opening a socket.
         raise SslCertificateError("bad certificate")
 
     monkeypatch.setattr(
@@ -203,6 +216,7 @@ def test_build_ssl_finding_handles_ssl_lookup_error(
 
 
 def test_calculate_total_score_never_goes_below_zero() -> None:
+    # Six high findings would subtract more than 100, so this guards the floor.
     findings = [
         Finding(
             check_name=f"check-{index}",

@@ -8,7 +8,8 @@ from security_scanner.models import Finding, Severity, Status
 
 logger = logging.getLogger(__name__)
 
-
+# This mapping is used by check_security_headers() to decide which headers are
+# required and what remediation to show when one is missing.
 REQUIRED_SECURITY_HEADERS: dict[str, tuple[Severity, str]] = {
     "strict-transport-security": (
         Severity.HIGH,
@@ -44,6 +45,7 @@ def check_security_headers(fetch_result: FetchResult) -> list[Finding]:
     """
     logger.info("Security header scan started url=%s", fetch_result.url)
 
+    # Normalize once because HTTP header names are case-insensitive.
     normalized_headers = {
         header_name.lower(): header_value
         for header_name, header_value in fetch_result.headers.items()
@@ -54,6 +56,7 @@ def check_security_headers(fetch_result: FetchResult) -> list[Finding]:
     for header_name, header_config in REQUIRED_SECURITY_HEADERS.items():
         severity, remediation = header_config
 
+        # Every configured header produces exactly one Finding, pass or fail.
         if header_name in normalized_headers:
             finding = Finding(
                 check_name=f"Security header: {header_name}",

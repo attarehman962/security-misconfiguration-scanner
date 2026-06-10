@@ -1,3 +1,5 @@
+"""Tests for converting typed models into JSON-safe dictionaries."""
+
 from datetime import datetime, timezone
 
 from security_scanner.models import Finding, ScanResult, Severity, Status
@@ -18,6 +20,7 @@ def test_serialize_finding_returns_json_safe_values() -> None:
 
     serialized = serialize_finding(finding)
 
+    # Enums should become strings so json.dumps can serialize them cleanly.
     assert serialized["check_name"] == "Content-Security-Policy"
     assert serialized["status"] == "Fail"
     assert serialized["severity"] == "High"
@@ -63,6 +66,7 @@ def test_serialize_scan_result_contains_findings() -> None:
 
     serialized = serialize_scan_result(scan_result)
 
+    # ScanResult serialization keeps metadata and nested findings together.
     assert serialized["url"] == "https://example.com"
     assert serialized["timestamp"] == "2026-01-01T12:00:00+00:00"
     assert serialized["total_score"] == 100

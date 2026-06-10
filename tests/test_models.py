@@ -1,3 +1,5 @@
+"""Tests for scanner dataclasses and enum serialization helpers."""
+
 from datetime import datetime, timezone
 
 from security_scanner.models import (
@@ -10,6 +12,7 @@ from security_scanner.models import (
 
 
 def test_url_scan_result_is_successful_for_2xx_status() -> None:
+    # A successful fetch requires no error and a 2xx/3xx status code.
     result = UrlScanResult(
         input_url="https://example.com",
         final_url="https://example.com",
@@ -38,6 +41,7 @@ def test_url_scan_result_is_not_successful_for_error() -> None:
 
 
 def test_finding_to_dict_returns_json_safe_dictionary() -> None:
+    # Finding.to_dict() is used by report output, so enum values must be strings.
     finding = Finding(
         check_name="X-Frame-Options",
         status=Status.FAIL,
@@ -72,6 +76,7 @@ def test_scan_result_to_dict_serializes_timestamp_and_findings() -> None:
 
     serialized = result.to_dict()
 
+    # ScanResult.to_dict() should serialize the timestamp and nested findings.
     assert serialized["url"] == "https://example.com"
     assert serialized["timestamp"] == "2026-01-01T12:00:00+00:00"
     assert serialized["total_score"] == 100

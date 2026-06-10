@@ -34,6 +34,7 @@ def test_run_header_checks_all_headers_missing_returns_all_failed() -> None:
     assert len(findings) == 6
     assert all(finding.status is Status.FAIL for finding in findings)
 
+    # Build a lookup so severity expectations stay tied to each header name.
     severities_by_header = {
         finding.check_name: finding.severity
         for finding in findings
@@ -56,6 +57,7 @@ def test_run_header_checks_partial_headers_returns_mixed_results() -> None:
 
     findings = run_header_checks(headers)
 
+    # Convert findings into a lookup to make mixed pass/fail assertions clear.
     passed_by_header = {
         finding.check_name: finding.status is Status.PASS
         for finding in findings
@@ -92,6 +94,7 @@ def test_findings_to_json_returns_valid_json() -> None:
 
     parsed_output = json.loads(json_output)
 
+    # The JSON helper should expose plain strings, not enum objects.
     assert isinstance(parsed_output, list)
     assert len(parsed_output) == 6
     assert parsed_output[0]["check_name"] == "Strict-Transport-Security"

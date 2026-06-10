@@ -1,3 +1,5 @@
+"""Tests for the package entrypoint used by `python -m security_scanner`."""
+
 import runpy
 
 import pytest
@@ -9,8 +11,10 @@ def test_main_module_exits_with_cli_return_code(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     def fake_main() -> int:
+        # A distinctive return code proves __main__ forwards cli.main().
         return 7
 
+    # Replace the real CLI so the module entrypoint can be tested in isolation.
     monkeypatch.setattr(cli, "main", fake_main)
 
     with pytest.raises(SystemExit) as exc_info:

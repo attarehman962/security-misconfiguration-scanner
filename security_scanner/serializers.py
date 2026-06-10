@@ -14,6 +14,8 @@ def serialize_finding(finding: Finding) -> dict[str, Any]:
     Returns:
         JSON-safe dictionary.
     """
+    # Enums are converted to their display values here so JSON output contains
+    # plain strings, not Python enum objects.
     return {
         "check_name": finding.check_name,
         "status": finding.status.value,
@@ -33,6 +35,7 @@ def serialize_scan_result(scan_result: ScanResult) -> dict[str, Any]:
     Returns:
         JSON-safe dictionary.
     """
+    # Formatting code consumes this same dictionary for both JSON and tables.
     return {
         "url": scan_result.url,
         "timestamp": _serialize_datetime(scan_result.timestamp),
@@ -55,6 +58,7 @@ def _serialize_datetime(value: datetime | str) -> str:
         ISO formatted timestamp string.
     """
     if isinstance(value, datetime):
+        # Preserve timezone information if the datetime has it.
         return value.isoformat()
 
     return str(value)

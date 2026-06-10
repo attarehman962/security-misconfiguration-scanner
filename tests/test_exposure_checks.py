@@ -19,7 +19,7 @@ from security_scanner.models import Severity, Status
 
 @dataclass(frozen=True)
 class FakeResponse:
-    """Small fake HTTP response used by unit tests."""
+    """Small fake HTTP response used instead of real network responses."""
 
     status_code: int
     headers: Mapping[str, str]
@@ -70,6 +70,7 @@ def test_exposed_env_returns_high_on_200() -> None:
     """Verify /.env HTTP 200 is treated as high severity exposure."""
 
     def fake_fetcher(url: str, timeout: int) -> FakeResponse:
+        # The check should probe from the site root and preserve the timeout.
         assert url == "https://example.com/.env"
         assert timeout == 10
         return FakeResponse(
@@ -92,6 +93,7 @@ def test_exposed_git_config_returns_high_on_200() -> None:
     """Verify /.git/config HTTP 200 is treated as high severity exposure."""
 
     def fake_fetcher(url: str, timeout: int) -> FakeResponse:
+        # The check should request exactly the sensitive Git config path.
         assert url == "https://example.com/.git/config"
         assert timeout == 10
         return FakeResponse(
@@ -129,6 +131,7 @@ def test_exposed_env_timeout_returns_error_finding() -> None:
     """Verify timeout does not crash the security_scanner."""
 
     def fake_fetcher(url: str, timeout: int) -> FakeResponse:
+        # Timeout exceptions should become findings, not test/runtime crashes.
         raise httpx.TimeoutException("request timed out")
 
     finding = check_exposed_env(
@@ -154,6 +157,8 @@ def test_run_exposure_checks_returns_all_day5_findings() -> None:
     )
 
     def fake_fetcher(url: str, timeout: int) -> FakeResponse:
+        # Extra path checks return 404 here so this test can focus on the list
+        # of checks produced by the combined exposure runner.
         return FakeResponse(status_code=404, headers={}, body="")
 
     findings = run_exposure_checks(

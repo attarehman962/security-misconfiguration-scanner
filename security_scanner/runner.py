@@ -1,3 +1,5 @@
+"""Main orchestration layer that connects fetchers, checks, and models."""
+
 from datetime import datetime, timezone
 from urllib.parse import urlsplit
 
@@ -24,9 +26,13 @@ def run_full_scan(url: str) -> ScanResult:
     """
     findings: list[Finding] = []
 
+    # First fetch the target once. The returned headers/body are reused by
+    # multiple checks so the scanner avoids unnecessary duplicate requests.
     fetch_result = UrlFetcher().fetch(url)
 
     if fetch_result.error is not None:
+        # A failed main fetch means header/exposure checks do not have reliable
+        # response data, so return one clear finding instead of crashing.
         findings.append(
             Finding(
                 check_name="http_fetch",
@@ -47,10 +53,13 @@ def run_full_scan(url: str) -> ScanResult:
             total_score=0,
         )
 
+    # Header checks only need response headers from the main request.
     findings.extend(run_header_checks(fetch_result.headers))
     if fetch_result.status_code is None:
         raise RuntimeError("Successful fetch result did not include status code.")
 
+    # Exposure checks use the same response shape as http_client.FetchResult.
+    # This small adapter keeps the checks independent from UrlFetcher internals.
     base_response = FetchResult(
         url=fetch_result.final_url or url,
         status_code=fetch_result.status_code,
@@ -67,6 +76,7 @@ def run_full_scan(url: str) -> ScanResult:
         )
     )
 
+    # SSL/TLS is represented as a normal Finding so scoring/output stays simple.
     ssl_finding = _build_ssl_finding(url)
     if ssl_finding is not None:
         findings.append(ssl_finding)
@@ -91,6 +101,7 @@ def _build_ssl_finding(url: str) -> Finding | None:
     """
     parsed_url = urlsplit(url)
 
+    # Plain HTTP is a security issue, but it is still a valid scan target.
     if parsed_url.scheme.lower() != "https":
         return Finding(
             check_name="ssl",
@@ -103,6 +114,8 @@ def _build_ssl_finding(url: str) -> Finding | None:
             ),
         )
 
+    # validate_url normally prevents this, but keeping the guard here makes the
+    # helper safe if called directly in tests or future code.
     if parsed_url.hostname is None:
         return Finding(
             check_name="ssl",
@@ -138,6 +151,8 @@ def _build_ssl_finding(url: str) -> Finding | None:
     now = datetime.now(timezone.utc)
     days_remaining = (ssl_expiry - now).days
 
+    # Treat expired and near-expiry certificates as failures with clear
+    # remediation because both can break user trust in the site.
     if ssl_expiry < now:
         return Finding(
             check_name="ssl",
@@ -190,6 +205,8 @@ def _calculate_total_score(findings: list[Finding]) -> int:
     score = 100
 
     for finding in findings:
+        # Only failed checks reduce the score; informational passing checks do
+        # not penalize the target.
         if finding.status is Status.FAIL:
             score -= penalty_by_severity[finding.severity]
 

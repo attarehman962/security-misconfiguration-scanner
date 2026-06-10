@@ -1,3 +1,5 @@
+"""Typed result models shared by every scanner component."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -21,6 +23,8 @@ class Status(str, Enum):
 
 @dataclass(frozen=True)
 class UrlScanResult:
+    """Raw HTTP/TLS fetch result before checks are converted into findings."""
+
     input_url: str
     final_url: str | None
     status_code: int | None
@@ -31,6 +35,7 @@ class UrlScanResult:
 
     @property
     def is_successful(self) -> bool:
+        """Return True when the main HTTP request completed with 2xx/3xx."""
         return (
             self.error is None
             and self.status_code is not None
@@ -40,7 +45,7 @@ class UrlScanResult:
 
 @dataclass(frozen=True, slots=True)
 class Finding:
-    """Represents one scanner check result."""
+    """Represents one security check result shown in reports."""
 
     check_name: str
     status: Status
@@ -61,7 +66,7 @@ class Finding:
 
 @dataclass(frozen=True, slots=True)
 class ScanResult:
-    """Represents the complete result for one scanned URL."""
+    """Represents the complete report for one scanned URL."""
 
     url: str
     timestamp: datetime

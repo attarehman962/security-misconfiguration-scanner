@@ -20,6 +20,8 @@ def fake_run_full_scan(url: str) -> ScanResult:
     Returns:
         Predictable ScanResult.
     """
+    # CLI tests should verify argument parsing/output only, so this fake avoids
+    # running the real scanner pipeline.
     finding = Finding(
         check_name="Content-Security-Policy",
         status=Status.FAIL,
@@ -43,6 +45,7 @@ def test_cli_prints_json_output(
     """
     Verify that CLI prints valid JSON when --format json is used.
     """
+    # Monkeypatch the scanner boundary so the test never performs HTTP requests.
     monkeypatch.setattr(cli, "run_full_scan", fake_run_full_scan)
 
     exit_code = cli.main(
@@ -114,6 +117,7 @@ def test_cli_writes_json_output_file(
     """
     monkeypatch.setattr(cli, "run_full_scan", fake_run_full_scan)
 
+    # tmp_path gives each test an isolated temporary directory.
     output_path = tmp_path / "reports" / "result.json"
 
     exit_code = cli.main(
@@ -158,6 +162,7 @@ def test_cli_rejects_invalid_url_before_scanning(
     scan_called = False
 
     def fake_scanner(url: str) -> ScanResult:
+        # This flag proves argparse rejected the URL before scanning.
         nonlocal scan_called
         scan_called = True
         return fake_run_full_scan(url)
@@ -180,6 +185,7 @@ def test_cli_rejects_invalid_format_before_scanning(
     scan_called = False
 
     def fake_scanner(url: str) -> ScanResult:
+        # This flag proves argparse rejected --format before scanning.
         nonlocal scan_called
         scan_called = True
         return fake_run_full_scan(url)
@@ -204,6 +210,7 @@ def test_cli_does_not_contain_header_checking_logic() -> None:
     """
     Verify header checks stay in runner.py/scanners, not cli.py.
     """
+    # Architectural guard: CLI should not slowly grow scanner business logic.
     cli_source = inspect.getsource(cli)
 
     assert "run_header_checks" not in cli_source

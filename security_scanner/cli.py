@@ -1,3 +1,5 @@
+"""Command-line interface for running the scanner from a terminal."""
+
 import argparse
 import sys
 from collections.abc import Sequence
@@ -35,6 +37,8 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
+    # argparse calls validate_url before run_full_scan(), so invalid targets
+    # fail early and no network request is made for bad CLI input.
     parser.add_argument(
         "--url",
         required=True,
@@ -88,11 +92,14 @@ def main(arguments: Sequence[str] | None = None) -> int:
     parsed_arguments = parser.parse_args(arguments)
 
     try:
+        # The CLI only coordinates input/output; scanner logic lives in runner.py.
         scan_result = run_full_scan(parsed_arguments.url)
     except RuntimeError as error:
         print(f"Scanner failed: {error}", file=sys.stderr)
         return 2
 
+    # Always build JSON once because it is used for both --format json and
+    # optional --output file writing.
     json_output = format_json(scan_result)
 
     if parsed_arguments.format == "json":
@@ -102,6 +109,7 @@ def main(arguments: Sequence[str] | None = None) -> int:
 
     if parsed_arguments.output is not None:
         try:
+            # Parent directories are created inside save_json_output().
             save_json_output(parsed_arguments.output, json_output)
         except OSError as error:
             print(f"Could not write output file: {error}", file=sys.stderr)

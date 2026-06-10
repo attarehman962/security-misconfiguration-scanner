@@ -19,6 +19,8 @@ class FetchResult:
 
 def fetch_url(url: str, timeout: int) -> FetchResult:
     """Fetch a URL and return the response data needed by checks."""
+    # This helper is intentionally small and predictable. Exposure checks use it
+    # for extra paths such as /.env without depending on UrlFetcher.
     response = httpx.get(
         url,
         timeout=timeout,

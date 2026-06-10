@@ -1,3 +1,5 @@
+"""Tests for user-facing JSON and table output formatting."""
+
 import json
 from datetime import datetime, timezone
 
@@ -12,6 +14,7 @@ def build_sample_scan_result() -> ScanResult:
     Returns:
         ScanResult with one finding.
     """
+    # Shared fixture keeps formatter tests focused on output shape, not setup.
     finding = Finding(
         check_name="Strict-Transport-Security",
         status=Status.FAIL,
@@ -35,6 +38,7 @@ def test_format_json_returns_valid_json() -> None:
     output = format_json(build_sample_scan_result())
     parsed_output = json.loads(output)
 
+    # Parsing the output proves the formatter returned valid JSON text.
     assert parsed_output["url"] == "https://example.com"
     assert parsed_output["total_score"] == 80
 
@@ -45,6 +49,7 @@ def test_format_table_contains_finding_details() -> None:
     """
     output = format_table(build_sample_scan_result())
 
+    # Table output is plain text, so assert the important visible fields.
     assert "Strict-Transport-Security" in output
     assert "Fail" in output
     assert "High" in output

@@ -41,10 +41,12 @@ def test_get_ssl_expiry_date_wraps_socket_timeout(
         address: tuple[str, int],
         timeout: float,
     ) -> NoReturn:
+        # Assert the helper connects to the parsed hostname/default HTTPS port.
         assert address == ("example.com", DEFAULT_HTTPS_PORT)
         assert timeout > 0
         raise socket.timeout("slow connection")
 
+    # Patch the socket boundary so the test does not depend on live DNS/network.
     monkeypatch.setattr(
         "security_scanner.ssl_utils.socket.create_connection",
         fake_create_connection,
@@ -61,6 +63,7 @@ def test_get_ssl_expiry_date_wraps_dns_error(
         address: tuple[str, int],
         timeout: float,
     ) -> NoReturn:
+        # Simulate DNS failure at the lowest network boundary.
         assert address == ("example.com", DEFAULT_HTTPS_PORT)
         assert timeout > 0
         raise socket.gaierror("no dns")

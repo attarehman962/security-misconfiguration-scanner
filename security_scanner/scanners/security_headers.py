@@ -9,7 +9,7 @@ from security_scanner.models import Finding, Severity, Status
 
 @dataclass(frozen=True, slots=True)
 class HeaderRule:
-    """Configuration for a required security header."""
+    """Configuration for one required security header check."""
 
     header: str
     severity: Severity
@@ -20,6 +20,8 @@ class HeaderRule:
 
 def _normalize_headers(headers: Mapping[str, str]) -> dict[str, str]:
     """Return headers with lowercase names for case-insensitive lookup."""
+    # Servers may return Header-Name, header-name, or HEADER-NAME. Lowercasing
+    # once keeps every check below simple and reliable.
     return {
         header_name.lower(): header_value
         for header_name, header_value in headers.items()
@@ -34,6 +36,8 @@ def _check_required_header(
     normalized_headers = _normalize_headers(headers)
     header_exists = rule.header.lower() in normalized_headers
 
+    # Each rule maps directly to one Finding so the report has predictable
+    # ordering and one row per required browser security header.
     if header_exists:
         return Finding(
             check_name=rule.header,
@@ -163,6 +167,7 @@ def check_permissions_policy(headers: Mapping[str, str]) -> Finding:
 HeaderChecker = Callable[[Mapping[str, str]], Finding]
 
 
+# The tuple order is the report order for security header findings.
 HEADER_CHECKERS: tuple[HeaderChecker, ...] = (
     check_strict_transport_security,
     check_content_security_policy,
@@ -175,6 +180,8 @@ HEADER_CHECKERS: tuple[HeaderChecker, ...] = (
 
 def run_header_checks(headers: Mapping[str, str]) -> list[Finding]:
     """Run all configured security header checks."""
+    # Keeping the check list data-driven makes it easy to add another header
+    # without changing runner.py or cli.py.
     return [checker(headers) for checker in HEADER_CHECKERS]
 
 

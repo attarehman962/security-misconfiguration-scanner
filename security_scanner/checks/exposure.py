@@ -13,7 +13,11 @@ from security_scanner.url_utils import build_root_path_url
 
 
 DEFAULT_TIMEOUT_SECONDS = 10
+
+# Version numbers in banners often reveal exact server/runtime versions.
 VERSION_PATTERN = re.compile(r"\b\d+(?:\.\d+){1,3}\b", re.IGNORECASE)
+
+# Common markers returned by web servers when directory listing is enabled.
 DIRECTORY_LISTING_PATTERNS = (
     "Index of /",
     "<title>Index of",
@@ -22,7 +26,11 @@ DIRECTORY_LISTING_PATTERNS = (
 
 
 class ResponseLike(Protocol):
-    """Minimum response shape required by exposure checks."""
+    """Minimum response shape required by exposure checks.
+
+    Using a Protocol keeps the checks easy to test with fake responses and also
+    lets both UrlFetcher and http_client results fit the same interface.
+    """
 
     @property
     def status_code(self) -> int:
@@ -47,6 +55,8 @@ def get_header(headers: Mapping[str, str], header_name: str) -> str | None:
     """Return a header value using case-insensitive lookup."""
     normalized_header_name = header_name.lower()
 
+    # HTTP header names are case-insensitive, but dictionaries preserve whatever
+    # casing the server/client library provided.
     for current_name, current_value in headers.items():
         if current_name.lower() == normalized_header_name:
             return current_value.strip()
@@ -62,6 +72,8 @@ def build_finding(
     remediation: str,
 ) -> Finding:
     """Create a Finding with consistent field ordering."""
+    # Centralizing Finding creation keeps all exposure checks on the same model
+    # shape and reduces copy/paste mistakes between checks.
     return Finding(
         check_name=check_name,
         status=status,
@@ -73,6 +85,7 @@ def build_finding(
 
 def parent_directory_listing_check(response: ResponseLike) -> Finding | None:
     """Check for parent directory listing in the response."""
+    # This check is optional: if no listing marker exists, no finding is added.
     if any(pattern in response.body for pattern in DIRECTORY_LISTING_PATTERNS):
         return build_finding(
             check_name="Parent Directory Listing",
@@ -99,6 +112,8 @@ def check_weak_cors(
     """Check whether wildcard CORS is enabled on a non-public API."""
     allowed_origin = get_header(headers, "Access-Control-Allow-Origin")
 
+    # Wildcard CORS is acceptable for deliberately public resources, but risky
+    # for private APIs because browsers can read allowed cross-origin responses.
     if allowed_origin == "*" and not is_public_api:
         return build_finding(
             check_name="Weak CORS policy",
@@ -215,6 +230,8 @@ def check_exposed_env(
     timeout: int = DEFAULT_TIMEOUT_SECONDS,
 ) -> Finding:
     """Check whether /.env is publicly accessible with one safe request."""
+    # urljoin builds the probe URL from the site root, even if the scanned URL
+    # included a path such as /app/login.
     target_url = build_root_path_url(base_url, "/.env")
 
     try:
@@ -233,6 +250,8 @@ def check_exposed_env(
         )
 
     if response.status_code == 200:
+        # HTTP 200 is enough to flag exposure; the scanner does not print secret
+        # file contents to avoid leaking sensitive data into reports.
         return build_finding(
             check_name="Exposed .env file",
             status=Status.FAIL,
@@ -264,6 +283,7 @@ def check_exposed_git_config(
     timeout: int = DEFAULT_TIMEOUT_SECONDS,
 ) -> Finding:
     """Check whether /.git/config is publicly accessible with one request."""
+    # Git metadata should never be served by a production web root.
     target_url = build_root_path_url(base_url, "/.git/config")
 
     try:
@@ -317,10 +337,13 @@ def run_exposure_checks(
     """Run all exposure and information-disclosure checks."""
     findings: list[Finding] = []
 
+    # Directory listing uses the already-fetched page body, so it does not need
+    # another network request.
     directory_listing_finding = parent_directory_listing_check(base_response)
     if directory_listing_finding is not None:
         findings.append(directory_listing_finding)
 
+    # These checks are ordered from response-header checks to extra safe probes.
     findings.extend(
         [
             check_weak_cors(base_response.headers, is_public_api),

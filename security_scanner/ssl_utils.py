@@ -32,6 +32,7 @@ def extract_hostname_and_port(url: str) -> tuple[str, int]:
     if not parsed_url.hostname:
         raise ValueError(f"URL does not contain a valid hostname: {url}")
 
+    # If no port is written in the URL, HTTPS uses port 443 by convention.
     port = parsed_url.port or DEFAULT_HTTPS_PORT
     return parsed_url.hostname, port
 
@@ -51,6 +52,7 @@ def get_ssl_expiry_date(url: str) -> datetime | None:
     """
     parsed_url = urlparse(url)
 
+    # HTTP targets do not have an HTTPS certificate to inspect.
     if parsed_url.scheme.lower() != "https":
         return None
 
@@ -58,6 +60,8 @@ def get_ssl_expiry_date(url: str) -> datetime | None:
     context = ssl.create_default_context()
 
     try:
+        # First open a TCP socket, then wrap it in TLS so the server presents
+        # its certificate for the requested hostname.
         with socket.create_connection(
             (hostname, port),
             timeout=DEFAULT_SSL_TIMEOUT_SECONDS,
@@ -73,9 +77,12 @@ def get_ssl_expiry_date(url: str) -> datetime | None:
                 f"No certificate returned by server: {hostname}"
             )
 
+        # cryptography parses the binary DER certificate into a typed object.
         certificate = x509.load_der_x509_certificate(der_certificate)
         return certificate.not_valid_after_utc
 
+    # Convert low-level network/library errors into one project-specific
+    # exception type so runner.py can handle SSL failures consistently.
     except socket.timeout as exc:
         raise SslCertificateError(
             f"Timed out while fetching SSL certificate for {hostname}"

@@ -19,6 +19,7 @@ def format_json(scan_result: ScanResult) -> str:
         JSON string.
     """
     serialized_result = serialize_scan_result(scan_result)
+    # sort_keys=True makes saved JSON stable and easier to compare in tests.
     return json.dumps(serialized_result, indent=2, sort_keys=True)
 
 
@@ -35,6 +36,8 @@ def format_table(scan_result: ScanResult) -> str:
     serialized_result = serialize_scan_result(scan_result)
     findings = serialized_result["findings"]
 
+    # Build the table as strings first; this keeps printing separate from
+    # formatting and makes the function easy to test.
     lines = [
         f"Scan result for: {serialized_result['url']}",
         f"Timestamp: {serialized_result['timestamp']}",
@@ -43,10 +46,14 @@ def format_table(scan_result: ScanResult) -> str:
     ]
 
     if not findings:
+        # Some future scanner mode may return only metadata, so handle an empty
+        # finding list gracefully.
         lines.append("No findings returned.")
         return "\n".join(lines)
 
     headers = ("Check", "Status", "Severity", "Description")
+    # Long descriptions are truncated so one finding cannot make the terminal
+    # table unreadably wide.
     rows = [
         (
             _truncate(str(finding["check_name"]), 30),
@@ -59,6 +66,8 @@ def format_table(scan_result: ScanResult) -> str:
 
     column_widths = _calculate_column_widths(headers, rows)
 
+    # Separator and row building are split into helpers to keep alignment logic
+    # in one place.
     separator = _build_separator(column_widths)
     lines.append(separator)
     lines.append(_build_row(headers, column_widths))

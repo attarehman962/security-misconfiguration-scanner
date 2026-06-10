@@ -13,6 +13,8 @@ SSL_EXPIRY = datetime(2026, 7, 1, tzinfo=timezone.utc)
 
 
 class FakeResponse:
+    """Minimal httpx.Response-like object for UrlFetcher tests."""
+
     url = "https://example.com/final"
     status_code = 200
     headers = {"Strict-Transport-Security": "max-age=31536000"}
@@ -20,6 +22,8 @@ class FakeResponse:
 
 
 class SuccessfulClient:
+    """Fake httpx.Client context manager that returns FakeResponse."""
+
     def __init__(self, *args: object, **kwargs: object) -> None:
         pass
 
@@ -40,11 +44,15 @@ class SuccessfulClient:
 
 
 class TimeoutClient(SuccessfulClient):
+    """Fake client that simulates an HTTP timeout."""
+
     def get(self, url: str) -> FakeResponse:
         raise httpx.TimeoutException(f"timed out: {url}")
 
 
 class RequestErrorClient(SuccessfulClient):
+    """Fake client that simulates a generic HTTP request failure."""
+
     def get(self, url: str) -> FakeResponse:
         raise httpx.RequestError(f"network error: {url}")
 
@@ -53,6 +61,7 @@ def test_url_fetcher_fetch_returns_success_result(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     def fake_get_ssl_expiry_date(url: str) -> datetime:
+        # Keep TLS deterministic and avoid opening real sockets.
         assert url == "https://example.com"
         return SSL_EXPIRY
 
@@ -61,6 +70,7 @@ def test_url_fetcher_fetch_returns_success_result(
         "get_ssl_expiry_date",
         fake_get_ssl_expiry_date,
     )
+    # Replace httpx.Client so this unit test never makes a real HTTP request.
     monkeypatch.setattr("security_scanner.url_fetcher.httpx.Client", SuccessfulClient)
 
     result = UrlFetcher().fetch("https://example.com")
@@ -78,6 +88,7 @@ def test_url_fetcher_fetch_returns_timeout_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     def fake_get_ssl_expiry_date(url: str) -> None:
+        # SSL can succeed or be skipped while the HTTP request times out.
         assert url == "https://example.com"
         return None
 
@@ -100,6 +111,7 @@ def test_url_fetcher_combines_request_and_ssl_errors(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     def fake_get_ssl_expiry_date(url: str) -> datetime:
+        # This test verifies both errors are preserved in one result message.
         assert url == "https://example.com"
         raise SslCertificateError("bad certificate")
 

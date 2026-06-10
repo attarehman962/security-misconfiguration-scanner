@@ -25,6 +25,7 @@ def normalize_url(raw_url: str) -> str:
     """
     cleaned_url = raw_url.strip()
 
+    # Empty or whitespace-only input cannot be safely normalized.
     if not cleaned_url:
         raise InvalidURLError("URL cannot be empty.")
 
@@ -32,11 +33,14 @@ def normalize_url(raw_url: str) -> str:
         raise InvalidURLError("URL cannot contain spaces.")
 
     if "://" not in cleaned_url:
+        # Internal fetchers may receive a bare hostname; HTTPS is the safer
+        # default because it tests the encrypted version first.
         cleaned_url = f"https://{cleaned_url}"
 
     try:
         parsed_url = urlparse(cleaned_url)
         hostname = parsed_url.hostname
+        # Accessing parsed_url.port forces urllib to validate malformed ports.
         _ = parsed_url.port
     except ValueError as error:
         raise InvalidURLError(f"Malformed URL: {error}") from error
@@ -54,6 +58,7 @@ def normalize_url(raw_url: str) -> str:
         parsed_url._replace(scheme=parsed_url.scheme.lower())
     )
 
+    # Removing one trailing slash keeps equivalent roots consistent in reports.
     return normalized_url.rstrip("/")
 
 
