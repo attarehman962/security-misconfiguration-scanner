@@ -6,8 +6,8 @@ from pathlib import Path
 import pytest
 from pytest import CaptureFixture, MonkeyPatch
 
-from scanner import cli
-from scanner.models import Finding, ScanResult, Severity
+from security_scanner import cli
+from security_scanner.models import Finding, ScanResult, Severity
 
 
 def fake_run_full_scan(url: str) -> ScanResult:
@@ -136,7 +136,7 @@ def test_cli_writes_json_output_file(
 
 def test_cli_help_prints_usage(capsys: CaptureFixture[str]) -> None:
     """
-    Verify that python -m scanner --help style parsing works.
+    Verify that python -m security_scanner --help style parsing works.
     """
     with pytest.raises(SystemExit) as exc_info:
         cli.main(["--help"])
@@ -144,7 +144,7 @@ def test_cli_help_prints_usage(capsys: CaptureFixture[str]) -> None:
     captured = capsys.readouterr()
 
     assert exc_info.value.code == 0
-    assert "usage: scanner" in captured.out
+    assert "usage: security-scanner" in captured.out
     assert "--url URL" in captured.out
     assert "--format {json,table}" in captured.out
 
@@ -207,4 +207,4 @@ def test_cli_does_not_contain_header_checking_logic() -> None:
     cli_source = inspect.getsource(cli)
 
     assert "run_header_checks" not in cli_source
-    assert "scanner.headers" not in cli_source
+    assert "security_scanner.scanners.security_headers" not in cli_source

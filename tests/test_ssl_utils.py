@@ -3,7 +3,7 @@ from typing import NoReturn
 
 import pytest
 
-from scanner.ssl_utils import (
+from security_scanner.ssl_utils import (
     DEFAULT_HTTPS_PORT,
     SslCertificateError,
     extract_hostname_and_port,
@@ -46,7 +46,7 @@ def test_get_ssl_expiry_date_wraps_socket_timeout(
         raise socket.timeout("slow connection")
 
     monkeypatch.setattr(
-        "scanner.ssl_utils.socket.create_connection",
+        "security_scanner.ssl_utils.socket.create_connection",
         fake_create_connection,
     )
 
@@ -66,7 +66,7 @@ def test_get_ssl_expiry_date_wraps_dns_error(
         raise socket.gaierror("no dns")
 
     monkeypatch.setattr(
-        "scanner.ssl_utils.socket.create_connection",
+        "security_scanner.ssl_utils.socket.create_connection",
         fake_create_connection,
     )
 

@@ -2,11 +2,11 @@
 
 import json
 
-from scanner.headers import (
+from security_scanner.scanners.security_headers import (
     findings_to_json,
     run_header_checks,
 )
-from scanner.models import Severity
+from security_scanner.models import Severity
 
 
 ALL_REQUIRED_HEADERS = {

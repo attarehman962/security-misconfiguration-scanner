@@ -4,9 +4,9 @@ from types import TracebackType
 import httpx
 import pytest
 
-from scanner import url_fetcher
-from scanner.ssl_utils import SslCertificateError
-from scanner.url_fetcher import UrlFetcher, normalize_url
+from security_scanner import url_fetcher
+from security_scanner.ssl_utils import SslCertificateError
+from security_scanner.url_fetcher import UrlFetcher, normalize_url
 
 
 SSL_EXPIRY = datetime(2026, 7, 1, tzinfo=timezone.utc)
@@ -74,7 +74,7 @@ def test_url_fetcher_fetch_returns_success_result(
         "get_ssl_expiry_date",
         fake_get_ssl_expiry_date,
     )
-    monkeypatch.setattr("scanner.url_fetcher.httpx.Client", SuccessfulClient)
+    monkeypatch.setattr("security_scanner.url_fetcher.httpx.Client", SuccessfulClient)
 
     result = UrlFetcher().fetch("https://example.com")
 
@@ -99,7 +99,7 @@ def test_url_fetcher_fetch_returns_timeout_error(
         "get_ssl_expiry_date",
         fake_get_ssl_expiry_date,
     )
-    monkeypatch.setattr("scanner.url_fetcher.httpx.Client", TimeoutClient)
+    monkeypatch.setattr("security_scanner.url_fetcher.httpx.Client", TimeoutClient)
 
     result = UrlFetcher().fetch("https://example.com")
 
@@ -121,7 +121,7 @@ def test_url_fetcher_combines_request_and_ssl_errors(
         "get_ssl_expiry_date",
         fake_get_ssl_expiry_date,
     )
-    monkeypatch.setattr("scanner.url_fetcher.httpx.Client", RequestErrorClient)
+    monkeypatch.setattr("security_scanner.url_fetcher.httpx.Client", RequestErrorClient)
 
     result = UrlFetcher().fetch("https://example.com")
 

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 import httpx
 
-from scanner.checks.exposure import (
+from security_scanner.checks.exposure import (
     check_exposed_env,
     check_exposed_git_config,
     parent_directory_listing_check,
@@ -14,7 +14,7 @@ from scanner.checks.exposure import (
     check_x_powered_by,
     run_exposure_checks,
 )
-from scanner.models import Severity
+from security_scanner.models import Severity
 
 
 @dataclass(frozen=True)
@@ -126,7 +126,7 @@ def test_directory_listing_fails_when_index_marker_exists() -> None:
 
 
 def test_exposed_env_timeout_returns_error_finding() -> None:
-    """Verify timeout does not crash the scanner."""
+    """Verify timeout does not crash the security_scanner."""
 
     def fake_fetcher(url: str, timeout: int) -> FakeResponse:
         raise httpx.TimeoutException("request timed out")

@@ -2,9 +2,9 @@ from datetime import datetime, timedelta, timezone
 
 from pytest import MonkeyPatch
 
-from scanner import runner
-from scanner.models import Finding, ScanResult, Severity, UrlScanResult
-from scanner.ssl_utils import SslCertificateError
+from security_scanner import runner
+from security_scanner.models import Finding, ScanResult, Severity, UrlScanResult
+from security_scanner.ssl_utils import SslCertificateError
 
 
 ALL_REQUIRED_HEADERS = {

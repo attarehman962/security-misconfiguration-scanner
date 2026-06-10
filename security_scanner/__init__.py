@@ -1,7 +1,7 @@
 """Security misconfiguration scanner package."""
 
-from scanner.models import Finding, ScanResult, Severity, UrlScanResult
-from scanner.runner import run_full_scan
+from security_scanner.models import Finding, ScanResult, Severity, UrlScanResult
+from security_scanner.runner import run_full_scan
 
 __all__ = [
     "Finding",

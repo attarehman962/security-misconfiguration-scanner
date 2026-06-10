@@ -1,4 +1,4 @@
-"""Exposure and information-disclosure checks for the scanner."""
+"""Exposure and information-disclosure checks for the security_scanner."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from urllib.parse import urljoin
 
 import httpx
 
-from scanner.models import Finding, Severity
+from security_scanner.models import Finding, Severity
 
 
 DEFAULT_TIMEOUT_SECONDS = 10

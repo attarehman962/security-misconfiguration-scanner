@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
-from scanner.models import Finding, ScanResult, Severity
-from scanner.serializers import serialize_finding, serialize_scan_result
+from security_scanner.models import Finding, ScanResult, Severity
+from security_scanner.serializers import serialize_finding, serialize_scan_result
 
 
 def test_serialize_finding_returns_json_safe_values() -> None:

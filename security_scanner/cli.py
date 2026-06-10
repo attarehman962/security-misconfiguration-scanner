@@ -3,9 +3,9 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
-from scanner.formatters import format_json, format_table
-from scanner.runner import run_full_scan
-from scanner.validators import validate_url
+from security_scanner.formatters import format_json, format_table
+from security_scanner.runner import run_full_scan
+from security_scanner.validators import validate_url
 
 
 SUPPORTED_OUTPUT_FORMATS: tuple[str, str] = ("json", "table")
@@ -13,13 +13,13 @@ SUPPORTED_OUTPUT_FORMATS: tuple[str, str] = ("json", "table")
 
 def build_parser() -> argparse.ArgumentParser:
     """
-    Build the command-line parser for the scanner.
+    Build the command-line parser for the security_scanner.
 
     Returns:
         Configured argparse ArgumentParser.
     """
     parser = argparse.ArgumentParser(
-        prog="scanner",
+        prog="security-scanner",
         description=(
             "Security Misconfiguration Scanner CLI. "
             "Fetches a target URL, checks common security headers, "
@@ -27,10 +27,10 @@ def build_parser() -> argparse.ArgumentParser:
         ),
         epilog=(
             "Examples:\n"
-            "  python -m scanner --url https://example.com\n"
-            "  python -m scanner --url https://example.com --format json\n"
-            "  python -m scanner --url https://example.com --format table\n"
-            "  python -m scanner --url https://example.com --output result.json"
+            "  python -m security_scanner --url https://example.com\n"
+            "  python -m security_scanner --url https://example.com --format json\n"
+            "  python -m security_scanner --url https://example.com --format table\n"
+            "  python -m security_scanner --url https://example.com --output result.json"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )

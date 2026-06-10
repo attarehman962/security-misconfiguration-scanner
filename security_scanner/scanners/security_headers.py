@@ -4,7 +4,7 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 import json
 
-from scanner.models import Finding, Severity
+from security_scanner.models import Finding, Severity
 
 
 @dataclass(frozen=True, slots=True)

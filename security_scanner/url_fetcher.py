@@ -4,8 +4,8 @@ from urllib.parse import urlparse
 
 import httpx
 
-from scanner.models import UrlScanResult
-from scanner.ssl_utils import SslCertificateError, get_ssl_expiry_date
+from security_scanner.models import UrlScanResult
+from security_scanner.ssl_utils import SslCertificateError, get_ssl_expiry_date
 
 
 DEFAULT_TIMEOUT_SECONDS = 10.0
@@ -16,7 +16,7 @@ DEFAULT_USER_AGENT = (
 
 
 class UrlFetcher:
-    """Fetch URL metadata needed by the security scanner."""
+    """Fetch URL metadata needed by the security security_scanner."""
 
     def __init__(self, timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS) -> None:
         """Initialize the URL fetcher.

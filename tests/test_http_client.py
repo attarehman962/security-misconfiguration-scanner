@@ -2,7 +2,7 @@ from collections.abc import Mapping
 
 from pytest import MonkeyPatch
 
-from scanner.http_client import FetchResult, fetch_url
+from security_scanner.http_client import FetchResult, fetch_url
 
 
 class FakeHttpxResponse:
@@ -27,7 +27,7 @@ def test_fetch_url_returns_status_headers_and_body(
         assert "User-Agent" in headers
         return FakeHttpxResponse()
 
-    monkeypatch.setattr("scanner.http_client.httpx.get", fake_get)
+    monkeypatch.setattr("security_scanner.http_client.httpx.get", fake_get)
 
     result = fetch_url("https://example.com", timeout=10)
 

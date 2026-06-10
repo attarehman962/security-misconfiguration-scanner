@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from scanner.models import Finding, ScanResult, Severity, UrlScanResult
+from security_scanner.models import Finding, ScanResult, Severity, UrlScanResult
 
 
 def test_url_scan_result_is_successful_for_2xx_status() -> None:

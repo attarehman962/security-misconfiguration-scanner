@@ -26,25 +26,25 @@ python -m pip install -r requirements.txt
 Run the scanner:
 
 ```bash
-python -m scanner --url https://example.com --format table
+python -m security_scanner --url https://example.com --format table
 ```
 
 Print JSON:
 
 ```bash
-python -m scanner --url https://example.com --format json
+python -m security_scanner --url https://example.com --format json
 ```
 
 Save JSON to a file:
 
 ```bash
-python -m scanner --url https://example.com --output result.json
+python -m security_scanner --url https://example.com --output result.json
 ```
 
 Show help:
 
 ```bash
-python -m scanner --help
+python -m security_scanner --help
 ```
 
 ## What It Checks
@@ -67,16 +67,19 @@ The scanner currently checks one URL at a time and reports:
 ## Project Layout
 
 ```text
-scanner/
+security_scanner/
   __init__.py          Public package exports
-  __main__.py          Entry point for python -m scanner
+  __main__.py          Entry point for python -m security_scanner
   cli.py               argparse CLI, output selection, file saving
   runner.py            Main orchestration through run_full_scan()
   validators.py        CLI URL validation
   url_fetcher.py       Main target fetcher using httpx.Client
   http_client.py       Small safe fetch helper for extra exposure paths
   ssl_utils.py         TLS certificate expiry helpers
-  headers.py           Security header checks
+  scanners/
+    __init__.py        Scanner modules package marker
+    security_headers.py
+                      Security header checks
   checks/
     __init__.py        Checks package marker
     exposure.py        CORS, banner, directory, .env, and .git checks
@@ -89,14 +92,16 @@ tests/
   test_cli.py
   test_exposure_checks.py
   test_formatters.py
-  test_header_checks.py
+  scanners/test_security_headers.py
   test_http_client.py
+  test_logging_config.py
   test_main.py
   test_models.py
   test_runner.py
   test_serializers.py
   test_ssl_utils.py
   test_url_fetcher.py
+  test_url_utils.py
   test_validators.py
 ```
 
@@ -104,18 +109,18 @@ tests/
 
 ```text
 1. Terminal user
-   python -m scanner --url https://example.com --format table
+   python -m security_scanner --url https://example.com --format table
 
-2. scanner/__main__.py
-   Calls scanner.cli.main().
+2. security_scanner/__main__.py
+   Calls security_scanner.cli.main().
 
-3. scanner/cli.py
+3. security_scanner/cli.py
    Builds argparse parser.
    Reads --url, --format, and --output.
    Calls validate_url() before scanning starts.
    Calls run_full_scan().
 
-4. scanner/validators.py
+4. security_scanner/validators.py
    Rejects invalid URLs:
    - missing scheme
    - unsupported scheme
@@ -123,7 +128,7 @@ tests/
    - missing hostname
    - fragments such as #section
 
-5. scanner/runner.py
+5. security_scanner/runner.py
    Coordinates the scan.
    Calls UrlFetcher().fetch(url).
    Adds header findings.
@@ -132,33 +137,33 @@ tests/
    Calculates total score.
    Returns ScanResult.
 
-6. scanner/url_fetcher.py
+6. security_scanner/url_fetcher.py
    Fetches the main target.
    Captures final URL, status code, headers, body, SSL expiry, and errors.
 
-7. scanner/headers.py
+7. security_scanner/scanners/security_headers.py
    Checks common browser security headers.
 
-8. scanner/checks/exposure.py
+8. security_scanner/checks/exposure.py
    Checks CORS, server banners, X-Powered-By, directory listing, .env, and
    .git/config exposure.
 
-9. scanner/http_client.py
+9. security_scanner/http_client.py
    Performs safe small fetches for extra paths such as /.env and /.git/config.
 
-10. scanner/ssl_utils.py
+10. security_scanner/ssl_utils.py
     Reads TLS certificate expiry for HTTPS targets.
 
-11. scanner/models.py
+11. security_scanner/models.py
     Stores all results as typed dataclasses and enums.
 
-12. scanner/serializers.py
+12. security_scanner/serializers.py
     Converts dataclasses and enums into JSON-safe dictionaries.
 
-13. scanner/formatters.py
+13. security_scanner/formatters.py
     Formats the result as JSON or a terminal table.
 
-14. scanner/cli.py
+14. security_scanner/cli.py
     Prints output and optionally writes result.json.
 ```
 
@@ -192,16 +197,16 @@ Supported options:
 Examples:
 
 ```bash
-python -m scanner --url https://example.com
-python -m scanner --url https://example.com --format table
-python -m scanner --url https://example.com --format json
-python -m scanner --url https://example.com --output result.json
+python -m security_scanner --url https://example.com
+python -m security_scanner --url https://example.com --format table
+python -m security_scanner --url https://example.com --format json
+python -m security_scanner --url https://example.com --output result.json
 ```
 
 Invalid format values are rejected by `argparse` before scanning:
 
 ```bash
-python -m scanner --url https://example.com --format xml
+python -m security_scanner --url https://example.com --format xml
 ```
 
 Invalid URLs are rejected by `validate_url()` before network requests are made.
@@ -247,7 +252,7 @@ Total score: 80
 `Severity` is an enum, not a raw string type.
 
 ```python
-from scanner.models import Severity
+from security_scanner.models import Severity
 
 Severity.INFO
 Severity.LOW
@@ -263,7 +268,7 @@ JSON strings such as `"High"`.
 A `Finding` is one check result.
 
 ```python
-from scanner.models import Finding, Severity
+from security_scanner.models import Finding, Severity
 
 finding = Finding(
     header="Content-Security-Policy",
@@ -302,7 +307,7 @@ response body for directory listing patterns.
 
 ### FetchResult
 
-`FetchResult` in `scanner/http_client.py` is a smaller safe fetch result used
+`FetchResult` in `security_scanner/http_client.py` is a smaller safe fetch result used
 for extra paths:
 
 ```text
@@ -326,7 +331,7 @@ It is used by exposure checks for paths such as:
 ```python
 from datetime import datetime, timezone
 
-from scanner.models import ScanResult
+from security_scanner.models import ScanResult
 
 result = ScanResult(
     url="https://example.com",
@@ -340,7 +345,7 @@ result = ScanResult(
 
 ### Security Header Checks
 
-`scanner/headers.py` checks:
+`security_scanner/scanners/security_headers.py` checks:
 
 - `Strict-Transport-Security`
 - `Content-Security-Policy`
@@ -356,7 +361,7 @@ Example:
 
 ```bash
 python - <<'PY'
-from scanner.headers import findings_to_json, run_header_checks
+from security_scanner.scanners.security_headers import findings_to_json, run_header_checks
 
 headers = {
     "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
@@ -370,7 +375,7 @@ PY
 
 ### Exposure Checks
 
-`scanner/checks/exposure.py` checks:
+`security_scanner/checks/exposure.py` checks:
 
 - Weak wildcard CORS on non-public APIs.
 - Server header version exposure.
@@ -383,7 +388,7 @@ Example:
 
 ```bash
 python - <<'PY'
-from scanner.checks.exposure import check_weak_cors
+from security_scanner.checks.exposure import check_weak_cors
 
 finding = check_weak_cors({"Access-Control-Allow-Origin": "*"})
 print(finding.passed)
@@ -405,7 +410,7 @@ python - <<'PY'
 from collections.abc import Mapping
 from dataclasses import dataclass
 
-from scanner.checks.exposure import check_exposed_env
+from security_scanner.checks.exposure import check_exposed_env
 
 
 @dataclass
@@ -434,7 +439,7 @@ Severity.HIGH
 
 ### SSL/TLS Checks
 
-`scanner/ssl_utils.py` extracts the hostname and port, opens a TLS connection,
+`security_scanner/ssl_utils.py` extracts the hostname and port, opens a TLS connection,
 loads the remote certificate with `cryptography`, and reads the certificate
 expiry date.
 
@@ -465,7 +470,7 @@ comparison, but it is not a professional risk rating.
 ## Serialization And Formatting
 
 The scanner keeps internal data typed with dataclasses and enums. Before output,
-`scanner/serializers.py` converts values into JSON-safe dictionaries.
+`security_scanner/serializers.py` converts values into JSON-safe dictionaries.
 
 Important conversion:
 
@@ -476,7 +481,7 @@ Finding       -> dict
 ScanResult    -> dict
 ```
 
-`scanner/formatters.py` then produces:
+`security_scanner/formatters.py` then produces:
 
 - Pretty JSON for automation and saved reports.
 - A compact table for terminal use.
@@ -498,19 +503,19 @@ Run only exposure tests:
 Run type checks:
 
 ```bash
-.venv/bin/python -B -m mypy scanner tests
+.venv/bin/python -B -m mypy security_scanner tests
 ```
 
 Compile all Python files:
 
 ```bash
-.venv/bin/python -B -m compileall -q scanner tests
+.venv/bin/python -B -m compileall -q security_scanner tests
 ```
 
 Run Ruff if installed:
 
 ```bash
-.venv/bin/python -B -m ruff check scanner tests
+.venv/bin/python -B -m ruff check security_scanner tests
 ```
 
 Current tests cover:
@@ -523,7 +528,7 @@ Current tests cover:
 - SSL utility parsing and error handling.
 - Runner orchestration.
 - Models, serializers, and formatters.
-- `python -m scanner` entrypoint.
+- `python -m security_scanner` entrypoint.
 
 ## Good Practices Used
 
@@ -532,11 +537,11 @@ Current tests cover:
 The project uses one main package:
 
 ```text
-scanner/
+security_scanner/
 ```
 
 This avoids confusion from duplicate package names such as
-`security_scanner`, `scanner`, or old demo packages.
+`security_scanner`, `security_scanner`, or old demo packages.
 
 ### Clear Boundaries
 
@@ -637,19 +642,19 @@ Run tests:
 Run type checks:
 
 ```bash
-.venv/bin/python -B -m mypy scanner tests
+.venv/bin/python -B -m mypy security_scanner tests
 ```
 
 Run one CLI command:
 
 ```bash
-.venv/bin/python -m scanner --url https://example.com --format table
+.venv/bin/python -m security_scanner --url https://example.com --format table
 ```
 
 Save JSON:
 
 ```bash
-.venv/bin/python -m scanner --url https://example.com --output result.json
+.venv/bin/python -m security_scanner --url https://example.com --output result.json
 ```
 
 ## GitHub Push Commands
@@ -669,7 +674,7 @@ git status
 Stage files:
 
 ```bash
-git add README.md pyproject.toml requirements.txt scanner tests .gitignore
+git add README.md pyproject.toml requirements.txt security_scanner tests .gitignore
 ```
 
 Commit:
