@@ -1,6 +1,7 @@
 """Command-line interface for running the scanner from a terminal."""
 
 import argparse
+import logging
 import sys
 from collections.abc import Sequence
 from pathlib import Path
@@ -15,6 +16,7 @@ from security_scanner import (
 )
 
 SUPPORTED_OUTPUT_FORMATS: tuple[str, str] = ("json", "table")
+logger = logging.getLogger(__name__)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -109,8 +111,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"Scanning target: {parsed_arguments.url}", file=sys.stderr)
 
         # The CLI only coordinates input/output; scanner logic lives in runner.py.
+        logger.info("CLI scan requested url=%s", parsed_arguments.url)
         scan_result = run_scan(parsed_arguments.url)
     except (RuntimeError, ScannerError) as error:
+        logger.error("CLI scan failed url=%s error=%s", parsed_arguments.url, error)
         print(f"Scanner failed: {error}", file=sys.stderr)
         return 1
 
@@ -128,12 +132,19 @@ def main(argv: Sequence[str] | None = None) -> int:
             # Parent directories are created inside save_json_output().
             save_json_output(parsed_arguments.output, json_output)
         except OSError as error:
+            logger.error(
+                "CLI could not write output file path=%s error=%s",
+                parsed_arguments.output,
+                error,
+            )
             print(f"Could not write output file: {error}", file=sys.stderr)
             return 1
 
+        logger.info("CLI saved JSON report path=%s", parsed_arguments.output)
         print(
             f"Saved JSON report to: {parsed_arguments.output}",
             file=sys.stderr,
         )
 
+    logger.info("CLI scan completed url=%s", parsed_arguments.url)
     return 0

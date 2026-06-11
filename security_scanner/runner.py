@@ -1,5 +1,6 @@
 """Main orchestration layer that connects fetchers, checks, and models."""
 
+import logging
 from argparse import ArgumentTypeError
 from datetime import datetime, timezone
 from urllib.parse import urlsplit
@@ -20,6 +21,8 @@ from security_scanner import (
     validate_url,
 )
 
+logger = logging.getLogger(__name__)
+
 
 def run_scan(url: str) -> ScanResult:
     """
@@ -34,8 +37,10 @@ def run_scan(url: str) -> ScanResult:
     try:
         validated_url = validate_url(url)
     except ArgumentTypeError as error:
+        logger.warning("Invalid scan URL rejected url=%s error=%s", url, error)
         raise InvalidURLError(str(error)) from error
 
+    logger.debug("Validated scan URL url=%s", validated_url)
     return run_full_scan(validated_url)
 
 
@@ -53,12 +58,18 @@ def run_full_scan(url: str) -> ScanResult:
         Complete ScanResult object.
     """
     findings: list[Finding] = []
+    logger.info("Full scan started url=%s", url)
 
     # First fetch the target once. The returned headers/body are reused by
     # multiple checks so the scanner avoids unnecessary duplicate requests.
     fetch_result = UrlFetcher().fetch(url)
 
     if fetch_result.error is not None:
+        logger.error(
+            "Main fetch failed url=%s error=%s",
+            url,
+            fetch_result.error,
+        )
         # A failed main fetch means header/exposure checks do not have reliable
         # response data, so return one clear finding instead of crashing.
         findings.append(
@@ -83,7 +94,9 @@ def run_full_scan(url: str) -> ScanResult:
 
     # Header checks only need response headers from the main request.
     findings.extend(run_header_checks(fetch_result.headers))
+    logger.info("Header checks completed url=%s findings=%s", url, len(findings))
     if fetch_result.status_code is None:
+        logger.error("Successful fetch result missing status code url=%s", url)
         raise RuntimeError("Successful fetch result did not include status code.")
 
     # Exposure checks use the same response shape as http_client.FetchResult.
@@ -103,17 +116,26 @@ def run_full_scan(url: str) -> ScanResult:
             is_public_api=False,
         )
     )
+    logger.info("Exposure checks completed url=%s findings=%s", url, len(findings))
 
     # SSL/TLS is represented as a normal Finding so scoring/output stays simple.
     ssl_finding = _build_ssl_finding(url)
     if ssl_finding is not None:
         findings.append(ssl_finding)
 
+    total_score = _calculate_total_score(findings)
+    logger.info(
+        "Full scan completed url=%s findings=%s total_score=%s",
+        url,
+        len(findings),
+        total_score,
+    )
+
     return ScanResult(
         url=fetch_result.final_url or url,
         timestamp=datetime.now(timezone.utc),
         findings=findings,
-        total_score=_calculate_total_score(findings),
+        total_score=total_score,
     )
 
 
@@ -131,6 +153,7 @@ def _build_ssl_finding(url: str) -> Finding | None:
 
     # Plain HTTP is a security issue, but it is still a valid scan target.
     if parsed_url.scheme.lower() != "https":
+        logger.warning("SSL check failed because target is not HTTPS url=%s", url)
         return Finding(
             check_name="ssl",
             status=Status.FAIL,
@@ -145,6 +168,7 @@ def _build_ssl_finding(url: str) -> Finding | None:
     # validate_url normally prevents this, but keeping the guard here makes the
     # helper safe if called directly in tests or future code.
     if parsed_url.hostname is None:
+        logger.error("SSL check could not extract hostname url=%s", url)
         return Finding(
             check_name="ssl",
             status=Status.FAIL,
@@ -156,6 +180,7 @@ def _build_ssl_finding(url: str) -> Finding | None:
     try:
         ssl_expiry = get_ssl_expiry_date(url)
     except (SslCertificateError, ValueError) as error:
+        logger.warning("SSL check failed url=%s error=%s", url, error)
         return Finding(
             check_name="ssl",
             status=Status.FAIL,
@@ -168,6 +193,7 @@ def _build_ssl_finding(url: str) -> Finding | None:
         )
 
     if ssl_expiry is None:
+        logger.warning("SSL expiry could not be determined url=%s", url)
         return Finding(
             check_name="ssl",
             status=Status.FAIL,
@@ -182,6 +208,7 @@ def _build_ssl_finding(url: str) -> Finding | None:
     # Treat expired and near-expiry certificates as failures with clear
     # remediation because both can break user trust in the site.
     if ssl_expiry < now:
+        logger.warning("SSL certificate expired url=%s expiry=%s", url, ssl_expiry)
         return Finding(
             check_name="ssl",
             status=Status.FAIL,
@@ -193,6 +220,11 @@ def _build_ssl_finding(url: str) -> Finding | None:
         )
 
     if days_remaining <= 14:
+        logger.warning(
+            "SSL certificate near expiry url=%s days_remaining=%s",
+            url,
+            days_remaining,
+        )
         return Finding(
             check_name="ssl",
             status=Status.FAIL,

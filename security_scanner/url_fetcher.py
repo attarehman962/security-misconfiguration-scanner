@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 import httpx
 
 from security_scanner import (
@@ -15,6 +17,7 @@ DEFAULT_USER_AGENT = (
     "SecurityMisconfigurationScanner/0.1 "
     "(educational portfolio scanner; contact: atta@example.com)"
 )
+logger = logging.getLogger(__name__)
 
 
 class UrlFetcher:
@@ -42,6 +45,7 @@ class UrlFetcher:
             # and also lowercases the scheme for consistent downstream checks.
             normalized_url = normalize_url(url)
         except InvalidURLError as exc:
+            logger.warning("URL normalization failed url=%s error=%s", url, exc)
             return UrlScanResult(
                 input_url=url,
                 final_url=None,
@@ -61,10 +65,16 @@ class UrlFetcher:
         except (SslCertificateError, ValueError) as exc:
             ssl_expiry = None
             ssl_error = str(exc)
+            logger.warning(
+                "SSL expiry lookup failed url=%s error=%s",
+                normalized_url,
+                exc,
+            )
         else:
             ssl_error = None
 
         try:
+            logger.info("HTTP fetch started url=%s", normalized_url)
             # follow_redirects=True lets the report show the final URL reached
             # after common HTTP redirects.
             with httpx.Client(
@@ -74,6 +84,12 @@ class UrlFetcher:
             ) as client:
                 response = client.get(normalized_url)
 
+            logger.info(
+                "HTTP fetch completed url=%s status_code=%s final_url=%s",
+                normalized_url,
+                response.status_code,
+                response.url,
+            )
             return UrlScanResult(
                 input_url=url,
                 final_url=str(response.url),
@@ -85,6 +101,7 @@ class UrlFetcher:
             )
 
         except httpx.TimeoutException as exc:
+            logger.error("HTTP request timed out url=%s error=%s", normalized_url, exc)
             return UrlScanResult(
                 input_url=url,
                 final_url=None,
@@ -95,6 +112,7 @@ class UrlFetcher:
                 error=f"HTTP request timed out: {exc}",
             )
         except httpx.TooManyRedirects as exc:
+            logger.error("HTTP request had too many redirects url=%s", normalized_url)
             return UrlScanResult(
                 input_url=url,
                 final_url=None,
@@ -106,6 +124,7 @@ class UrlFetcher:
             )
         except httpx.RequestError as exc:
             combined_error = str(exc)
+            logger.error("HTTP request failed url=%s error=%s", normalized_url, exc)
 
             if ssl_error:
                 # Preserve both network and SSL context when both checks fail.
