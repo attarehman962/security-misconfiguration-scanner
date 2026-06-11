@@ -1,9 +1,6 @@
 import json
-from typing import Any
 
-from security_scanner.models import ScanResult
-from security_scanner.serializers import serialize_scan_result
-
+from security_scanner import ScanResult, serialize_scan_result
 
 MAX_COLUMN_WIDTH = 70
 

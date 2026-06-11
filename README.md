@@ -89,6 +89,12 @@ Save JSON to a file:
 security-scanner --url https://example.com --output result.json
 ```
 
+Print progress messages to stderr:
+
+```bash
+security-scanner --url https://example.com --verbose
+```
+
 You can also run the package as a module:
 
 ```bash
@@ -232,6 +238,15 @@ Supported options:
 --url       Required target URL. Must start with http:// or https://.
 --format    Output format. Choices: table, json. Default: table.
 --output    Optional path to save JSON output.
+--verbose   Print progress messages to stderr.
+```
+
+Exit codes:
+
+```text
+0   Scan completed and output was printed.
+1   Scanner handled a runtime failure or could not write the output file.
+2   argparse rejected invalid CLI input such as a bad URL or bad format.
 ```
 
 Examples:
@@ -241,6 +256,7 @@ security-scanner --url https://example.com
 security-scanner --url https://example.com --format table
 security-scanner --url https://example.com --format json
 security-scanner --url https://example.com --output result.json
+security-scanner --url https://example.com --verbose
 python -m security_scanner --url https://example.com
 ```
 

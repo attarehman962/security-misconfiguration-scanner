@@ -4,9 +4,7 @@ from types import TracebackType
 import httpx
 import pytest
 
-from security_scanner import url_fetcher
-from security_scanner import SslCertificateError, UrlFetcher
-
+from security_scanner import SslCertificateError, UrlFetcher, url_fetcher
 
 SSL_EXPIRY = datetime(2026, 7, 1, tzinfo=timezone.utc)
 

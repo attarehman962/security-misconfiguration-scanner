@@ -9,10 +9,10 @@ from security_scanner import Severity, Status
 from security_scanner.checks import (
     check_exposed_env,
     check_exposed_git_config,
-    parent_directory_listing_check,
     check_server_banner,
     check_weak_cors,
     check_x_powered_by,
+    parent_directory_listing_check,
     run_exposure_checks,
 )
 

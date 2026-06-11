@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import ssl
 import socket
+import ssl
 from datetime import datetime
 from urllib.parse import urlparse
 

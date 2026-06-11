@@ -1,13 +1,12 @@
+import inspect
 import json
 from datetime import datetime, timezone
-import inspect
 from pathlib import Path
 
 import pytest
 from pytest import CaptureFixture, MonkeyPatch
 
-from security_scanner import cli
-from security_scanner import Finding, ScanResult, Severity, Status
+from security_scanner import Finding, ScanResult, Severity, Status, cli
 
 
 def fake_run_full_scan(url: str) -> ScanResult:
@@ -151,6 +150,75 @@ def test_cli_help_prints_usage(capsys: CaptureFixture[str]) -> None:
     assert "usage: security-scanner" in captured.out
     assert "--url URL" in captured.out
     assert "--format {json,table}" in captured.out
+    assert "--verbose" in captured.out
+
+
+def test_cli_verbose_prints_progress_to_stderr(
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture[str],
+) -> None:
+    """
+    Verify --verbose prints progress without changing normal stdout output.
+    """
+    monkeypatch.setattr(cli, "run_full_scan", fake_run_full_scan)
+
+    exit_code = cli.main(["--url", "https://example.com", "--verbose"])
+
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Scan result for: https://example.com" in captured.out
+    assert "Scanning target: https://example.com" in captured.err
+
+
+def test_cli_returns_one_for_handled_scan_failure(
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture[str],
+) -> None:
+    """
+    Verify handled scanner failures return exit code 1 and write stderr.
+    """
+
+    def fake_scanner(url: str) -> ScanResult:
+        raise RuntimeError(f"scan failed for {url}")
+
+    monkeypatch.setattr(cli, "run_full_scan", fake_scanner)
+
+    exit_code = cli.main(["--url", "https://example.com"])
+
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert captured.out == ""
+    assert "Scanner failed: scan failed for https://example.com" in captured.err
+
+
+def test_cli_returns_one_for_output_write_failure(
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture[str],
+    tmp_path: Path,
+) -> None:
+    """
+    Verify output write errors are handled with exit code 1.
+    """
+    monkeypatch.setattr(cli, "run_full_scan", fake_run_full_scan)
+
+    output_directory = tmp_path / "report-directory"
+    output_directory.mkdir()
+
+    exit_code = cli.main(
+        [
+            "--url",
+            "https://example.com",
+            "--output",
+            str(output_directory),
+        ]
+    )
+
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "Could not write output file:" in captured.err
 
 
 def test_cli_rejects_invalid_url_before_scanning(

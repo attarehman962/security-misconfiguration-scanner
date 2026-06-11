@@ -5,10 +5,7 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
-from security_scanner.formatters import format_json, format_table
-from security_scanner.runner import run_full_scan
-from security_scanner.validators import validate_url
-
+from security_scanner import format_json, format_table, run_full_scan, validate_url
 
 SUPPORTED_OUTPUT_FORMATS: tuple[str, str] = ("json", "table")
 
@@ -32,7 +29,9 @@ def build_parser() -> argparse.ArgumentParser:
             "  python -m security_scanner --url https://example.com\n"
             "  python -m security_scanner --url https://example.com --format json\n"
             "  python -m security_scanner --url https://example.com --format table\n"
-            "  python -m security_scanner --url https://example.com --output result.json"
+            "  python -m security_scanner --url https://example.com "
+            "--output result.json\n"
+            "  python -m security_scanner --url https://example.com --verbose"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -59,6 +58,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Terminal output format. Choices: json, table. Default: table.",
     )
 
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Print progress messages to stderr.",
+    )
+
     return parser
 
 
@@ -77,26 +82,29 @@ def save_json_output(output_path: Path, json_output: str) -> None:
     output_path.write_text(json_output + "\n", encoding="utf-8")
 
 
-def main(arguments: Sequence[str] | None = None) -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     """
     Run the scanner CLI.
 
     Args:
-        arguments: Optional argument list for tests. If None, argparse
-            reads from sys.argv.
+        argv: Optional argument list for tests. If None, argparse reads from
+            sys.argv.
 
     Returns:
         Process exit code.
     """
     parser = build_parser()
-    parsed_arguments = parser.parse_args(arguments)
+    parsed_arguments = parser.parse_args(argv)
 
     try:
+        if parsed_arguments.verbose:
+            print(f"Scanning target: {parsed_arguments.url}", file=sys.stderr)
+
         # The CLI only coordinates input/output; scanner logic lives in runner.py.
         scan_result = run_full_scan(parsed_arguments.url)
     except RuntimeError as error:
         print(f"Scanner failed: {error}", file=sys.stderr)
-        return 2
+        return 1
 
     # Always build JSON once because it is used for both --format json and
     # optional --output file writing.
@@ -113,7 +121,7 @@ def main(arguments: Sequence[str] | None = None) -> int:
             save_json_output(parsed_arguments.output, json_output)
         except OSError as error:
             print(f"Could not write output file: {error}", file=sys.stderr)
-            return 2
+            return 1
 
         print(
             f"Saved JSON report to: {parsed_arguments.output}",

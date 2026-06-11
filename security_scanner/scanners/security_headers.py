@@ -1,10 +1,10 @@
 """Security header checks for HTTP response headers."""
 
+import json
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
-import json
 
-from security_scanner.models import Finding, Severity, Status
+from security_scanner import Finding, Severity, Status
 
 
 @dataclass(frozen=True, slots=True)

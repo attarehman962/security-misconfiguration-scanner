@@ -8,7 +8,6 @@ from security_scanner.scanners import (
     run_header_checks,
 )
 
-
 ALL_REQUIRED_HEADERS = {
     "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
     "Content-Security-Policy": "default-src 'self'",

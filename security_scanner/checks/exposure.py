@@ -8,9 +8,7 @@ from typing import Protocol
 
 import httpx
 
-from security_scanner.models import Finding, Severity, Status
-from security_scanner.url_utils import build_root_path_url
-
+from security_scanner import Finding, Severity, Status, build_root_path_url
 
 DEFAULT_TIMEOUT_SECONDS = 10
 

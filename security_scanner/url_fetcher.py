@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import httpx
 
-from security_scanner.exceptions import InvalidURLError
-from security_scanner.models import UrlScanResult
-from security_scanner.ssl_utils import SslCertificateError, get_ssl_expiry_date
-from security_scanner.url_utils import normalize_url
-
+from security_scanner import (
+    InvalidURLError,
+    SslCertificateError,
+    UrlScanResult,
+    get_ssl_expiry_date,
+    normalize_url,
+)
 
 DEFAULT_TIMEOUT_SECONDS = 10.0
 DEFAULT_USER_AGENT = (

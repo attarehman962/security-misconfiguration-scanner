@@ -2,8 +2,7 @@
 
 from urllib.parse import urljoin, urlparse, urlunparse
 
-from security_scanner.exceptions import InvalidURLError
-
+from security_scanner import InvalidURLError
 
 ALLOWED_SCHEMES: set[str] = {"http", "https"}
 

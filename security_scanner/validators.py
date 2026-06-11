@@ -1,7 +1,7 @@
 from argparse import ArgumentTypeError
 from urllib.parse import urlsplit
 
-from security_scanner.url_utils import ALLOWED_SCHEMES
+from security_scanner import ALLOWED_SCHEMES
 
 
 def validate_url(value: str) -> str:

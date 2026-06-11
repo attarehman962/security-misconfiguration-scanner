@@ -2,9 +2,7 @@
 
 import logging
 
-from security_scanner.http_client import FetchResult
-from security_scanner.models import Finding, Severity, Status
-
+from security_scanner import FetchResult, Finding, Severity, Status
 
 logger = logging.getLogger(__name__)
 

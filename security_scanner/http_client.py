@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 import httpx
 
-from security_scanner.url_fetcher import DEFAULT_USER_AGENT
+from security_scanner import DEFAULT_USER_AGENT
 
 
 @dataclass(slots=True)

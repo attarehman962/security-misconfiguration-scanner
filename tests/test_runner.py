@@ -2,16 +2,15 @@ from datetime import datetime, timedelta, timezone
 
 from pytest import MonkeyPatch
 
-from security_scanner import runner
 from security_scanner import (
     Finding,
     ScanResult,
     Severity,
-    Status,
     SslCertificateError,
+    Status,
     UrlScanResult,
+    runner,
 )
-
 
 ALL_REQUIRED_HEADERS = {
     "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
