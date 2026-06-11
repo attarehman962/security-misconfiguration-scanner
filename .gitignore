@@ -67,6 +67,7 @@ reports/
 output/
 tmp/
 temp/
+learn/
 
 # Local Codex/agent workspace files
 .codex/
