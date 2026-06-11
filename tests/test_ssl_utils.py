@@ -3,7 +3,7 @@ from typing import NoReturn
 
 import pytest
 
-from security_scanner.ssl_utils import (
+from security_scanner import (
     DEFAULT_HTTPS_PORT,
     SslCertificateError,
     extract_hostname_and_port,

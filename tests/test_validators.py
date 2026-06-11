@@ -4,7 +4,7 @@ from argparse import ArgumentTypeError
 
 import pytest
 
-from security_scanner.validators import validate_url
+from security_scanner import validate_url
 
 
 def test_validate_url_accepts_http_and_https_urls() -> None:

@@ -4,7 +4,7 @@ from collections.abc import Mapping
 
 from pytest import MonkeyPatch
 
-from security_scanner.http_client import FetchResult, fetch_url
+from security_scanner import FetchResult, fetch_url
 
 
 class FakeHttpxResponse:

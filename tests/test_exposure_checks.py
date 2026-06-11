@@ -5,7 +5,8 @@ from dataclasses import dataclass
 
 import httpx
 
-from security_scanner.checks.exposure import (
+from security_scanner import Severity, Status
+from security_scanner.checks import (
     check_exposed_env,
     check_exposed_git_config,
     parent_directory_listing_check,
@@ -14,7 +15,6 @@ from security_scanner.checks.exposure import (
     check_x_powered_by,
     run_exposure_checks,
 )
-from security_scanner.models import Severity, Status
 
 
 @dataclass(frozen=True)

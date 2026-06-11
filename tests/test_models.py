@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 
-from security_scanner.models import (
+from security_scanner import (
     Finding,
     ScanResult,
     Severity,

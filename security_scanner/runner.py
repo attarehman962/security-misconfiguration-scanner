@@ -3,11 +3,11 @@
 from datetime import datetime, timezone
 from urllib.parse import urlsplit
 
-from security_scanner.checks.exposure import run_exposure_checks
+from security_scanner.checks import run_exposure_checks
 from security_scanner.http_client import FetchResult, fetch_url
 from security_scanner.ssl_utils import SslCertificateError, get_ssl_expiry_date
 from security_scanner.url_fetcher import UrlFetcher
-from security_scanner.scanners.security_headers import run_header_checks
+from security_scanner.scanners import run_header_checks
 from security_scanner.models import Finding, ScanResult, Severity, Status
 
 

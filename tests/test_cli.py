@@ -7,7 +7,7 @@ import pytest
 from pytest import CaptureFixture, MonkeyPatch
 
 from security_scanner import cli
-from security_scanner.models import Finding, ScanResult, Severity, Status
+from security_scanner import Finding, ScanResult, Severity, Status
 
 
 def fake_run_full_scan(url: str) -> ScanResult:

@@ -5,8 +5,7 @@ import httpx
 import pytest
 
 from security_scanner import url_fetcher
-from security_scanner.ssl_utils import SslCertificateError
-from security_scanner.url_fetcher import UrlFetcher
+from security_scanner import SslCertificateError, UrlFetcher
 
 
 SSL_EXPIRY = datetime(2026, 7, 1, tzinfo=timezone.utc)

@@ -1,14 +1,47 @@
 # Security Misconfiguration Scanner
 
-A Python command-line scanner for checking common web security
-misconfigurations. The scanner fetches a target URL, checks response headers,
-checks exposure risks, checks basic TLS certificate health, calculates a simple
-score, and prints the result as a table or JSON.
+## Purpose
 
-This project is for learning, portfolio work, and authorized security testing.
-Only scan systems that you own or have permission to test.
+Security Misconfiguration Scanner is a Python command-line tool for checking
+common web security misconfigurations on an authorized target URL. It fetches
+one URL, inspects response headers, checks selected exposure risks, checks basic
+TLS certificate health, calculates a simple score, and prints the result as a
+terminal table or JSON.
 
-## Quick Start
+This project is designed for learning, portfolio work, and safe authorized
+security testing. It is not a replacement for a professional penetration test.
+
+## Features
+
+The scanner currently reports:
+
+- URL fetch success or failure.
+- Final URL after redirects.
+- HTTP response status code, headers, and body.
+- Browser security headers.
+- Weak CORS configuration.
+- Server banner and `X-Powered-By` exposure.
+- Parent directory listing exposure.
+- Public `/.env` exposure.
+- Public `/.git/config` exposure.
+- HTTP vs HTTPS usage.
+- TLS certificate lookup, expiry, and near-expiry status.
+- A simple total score from `0` to `100`.
+- Table output for humans and JSON output for automation.
+- JSON report saving with `--output`.
+
+## Tech Stack
+
+- Python `3.14+`
+- `httpx` for HTTP requests
+- `cryptography` for TLS certificate parsing
+- `argparse` for the command-line interface
+- `dataclasses` and `Enum` for typed scanner models
+- `pytest` and `pytest-cov` for tests and coverage
+- `mypy` for static type checking
+- `ruff` for linting
+
+## Installation
 
 Create and activate a virtual environment:
 
@@ -23,48 +56,46 @@ Install dependencies:
 python -m pip install -r requirements.txt
 ```
 
-Run the scanner:
+Install the package in editable mode so the `security-scanner` command is
+available inside your virtual environment:
 
 ```bash
-python -m security_scanner --url https://example.com --format table
+python -m pip install -e .
+```
+
+## Usage Examples
+
+Show help:
+
+```bash
+security-scanner --help
+```
+
+Run the scanner with table output:
+
+```bash
+security-scanner --url https://example.com --format table
 ```
 
 Print JSON:
 
 ```bash
-python -m security_scanner --url https://example.com --format json
+security-scanner --url https://example.com --format json
 ```
 
 Save JSON to a file:
 
 ```bash
-python -m security_scanner --url https://example.com --output result.json
+security-scanner --url https://example.com --output result.json
 ```
 
-Show help:
+You can also run the package as a module:
 
 ```bash
-python -m security_scanner --help
+python -m security_scanner --url https://example.com --format table
 ```
 
-## What It Checks
-
-The scanner currently checks one URL at a time and reports:
-
-- URL fetch success or failure.
-- Final URL after redirects.
-- HTTP response status code, headers, and body.
-- Browser security headers.
-- Weak CORS configuration.
-- Server banner and `X-Powered-By` exposure.
-- Parent directory listing exposure.
-- Public `/.env` exposure.
-- Public `/.git/config` exposure.
-- HTTP vs HTTPS usage.
-- TLS certificate lookup, expiry, and near-expiry status.
-- A simple total score from `0` to `100`.
-
-## Project Layout
+## Project Structure
 
 ```text
 security_scanner/
@@ -104,13 +135,14 @@ tests/
   test_url_fetcher.py
   test_url_utils.py
   test_validators.py
+  test_package_exports.py
 ```
 
 ## Complete Workflow
 
 ```text
 1. Terminal user
-   python -m security_scanner --url https://example.com --format table
+   security-scanner --url https://example.com --format table
 
 2. security_scanner/__main__.py
    Calls security_scanner.cli.main().
@@ -205,21 +237,24 @@ Supported options:
 Examples:
 
 ```bash
+security-scanner --url https://example.com
+security-scanner --url https://example.com --format table
+security-scanner --url https://example.com --format json
+security-scanner --url https://example.com --output result.json
 python -m security_scanner --url https://example.com
-python -m security_scanner --url https://example.com --format table
-python -m security_scanner --url https://example.com --format json
-python -m security_scanner --url https://example.com --output result.json
 ```
 
 Invalid format values are rejected by `argparse` before scanning:
 
 ```bash
-python -m security_scanner --url https://example.com --format xml
+security-scanner --url https://example.com --format xml
 ```
 
 Invalid URLs are rejected by `validate_url()` before network requests are made.
 
-## Example Table Output
+## Sample Output
+
+### Table Output
 
 ```text
 Scan result for: https://example.com
@@ -233,7 +268,7 @@ Total score: 80
 +---------------------------+--------+----------+-------------------------+
 ```
 
-## Example JSON Output
+### JSON Output
 
 ```json
 {
@@ -508,13 +543,16 @@ ScanResult    -> dict
 - Pretty JSON for automation and saved reports.
 - A compact table for terminal use.
 
-## Testing
+## Tests
 
 Run all tests:
 
 ```bash
 .venv/bin/python -B -m pytest
 ```
+
+Coverage is configured in `pytest.ini`, so this command also runs coverage and
+requires at least `70%` total coverage.
 
 Run only exposure tests:
 
@@ -551,6 +589,7 @@ Current tests cover:
 - Runner orchestration.
 - Models, serializers, and formatters.
 - `python -m security_scanner` entrypoint.
+- Public package exports from `__init__.py` files.
 
 ## Good Practices Used
 
@@ -620,6 +659,7 @@ cryptography
 httpx
 mypy
 pytest
+pytest-cov
 ruff
 ```
 
@@ -671,13 +711,13 @@ Run type checks:
 Run one CLI command:
 
 ```bash
-.venv/bin/python -m security_scanner --url https://example.com --format table
+security-scanner --url https://example.com --format table
 ```
 
 Save JSON:
 
 ```bash
-.venv/bin/python -m security_scanner --url https://example.com --output result.json
+security-scanner --url https://example.com --output result.json
 ```
 
 ## GitHub Push Commands
@@ -732,8 +772,26 @@ git push -u origin main
 - Some findings are informational and need human review.
 - The score is a simple educational score, not a compliance grade.
 
-## Responsible Use
+## Contribution Notes
+
+Before contributing or pushing changes:
+
+- Keep one clear package: `security_scanner`.
+- Keep CLI logic in `cli.py` and scanner orchestration in `runner.py`.
+- Add or update tests for behavior changes.
+- Use fake responses and monkeypatching instead of real network calls in unit
+  tests.
+- Run `python -m pytest` and `python -m mypy security_scanner tests`.
+- Keep dependencies minimal.
+- Do not commit virtual environments, caches, logs, coverage files, or generated
+  reports.
+
+## Safety Notes
 
 Use this scanner only on systems where you have permission. Do not scan random
 public targets, private systems, or third-party infrastructure without written
 authorization.
+
+The scanner sends HTTP requests to the target and selected root-relative paths
+such as `/.env` and `/.git/config`. Treat scan output as sensitive because it
+may reveal configuration mistakes, exposed metadata, or security weaknesses.

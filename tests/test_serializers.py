@@ -2,8 +2,14 @@
 
 from datetime import datetime, timezone
 
-from security_scanner.models import Finding, ScanResult, Severity, Status
-from security_scanner.serializers import serialize_finding, serialize_scan_result
+from security_scanner import (
+    Finding,
+    ScanResult,
+    Severity,
+    Status,
+    serialize_finding,
+    serialize_scan_result,
+)
 
 
 def test_serialize_finding_returns_json_safe_values() -> None:

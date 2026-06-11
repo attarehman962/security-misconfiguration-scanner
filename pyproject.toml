@@ -8,6 +8,9 @@ dependencies = [
     "httpx>=0.27.0",
 ]
 
+[project.scripts]
+security-scanner = "security_scanner.cli:main"
+
 [project.optional-dependencies]
 dev = [
     "mypy==2.1.0",

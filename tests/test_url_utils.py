@@ -2,8 +2,7 @@
 
 import pytest
 
-from security_scanner.exceptions import InvalidURLError
-from security_scanner.url_utils import build_root_path_url, normalize_url
+from security_scanner import InvalidURLError, build_root_path_url, normalize_url
 
 
 def test_normalize_url_adds_https_scheme_when_missing() -> None:

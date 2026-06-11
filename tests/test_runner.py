@@ -3,14 +3,14 @@ from datetime import datetime, timedelta, timezone
 from pytest import MonkeyPatch
 
 from security_scanner import runner
-from security_scanner.models import (
+from security_scanner import (
     Finding,
     ScanResult,
     Severity,
     Status,
+    SslCertificateError,
     UrlScanResult,
 )
-from security_scanner.ssl_utils import SslCertificateError
 
 
 ALL_REQUIRED_HEADERS = {

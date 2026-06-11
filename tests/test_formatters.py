@@ -3,8 +3,14 @@
 import json
 from datetime import datetime, timezone
 
-from security_scanner.formatters import format_json, format_table
-from security_scanner.models import Finding, ScanResult, Severity, Status
+from security_scanner import (
+    Finding,
+    ScanResult,
+    Severity,
+    Status,
+    format_json,
+    format_table,
+)
 
 
 def build_sample_scan_result() -> ScanResult:
