@@ -5,7 +5,14 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
-from security_scanner import format_json, format_table, run_scan, validate_url
+from security_scanner import (
+    ScannerError,
+    configure_logging,
+    format_json,
+    format_table,
+    run_scan,
+    validate_url,
+)
 
 SUPPORTED_OUTPUT_FORMATS: tuple[str, str] = ("json", "table")
 
@@ -95,6 +102,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     """
     parser = build_parser()
     parsed_arguments = parser.parse_args(argv)
+    configure_logging(verbose=parsed_arguments.verbose)
 
     try:
         if parsed_arguments.verbose:
@@ -102,7 +110,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
         # The CLI only coordinates input/output; scanner logic lives in runner.py.
         scan_result = run_scan(parsed_arguments.url)
-    except RuntimeError as error:
+    except (RuntimeError, ScannerError) as error:
         print(f"Scanner failed: {error}", file=sys.stderr)
         return 1
 

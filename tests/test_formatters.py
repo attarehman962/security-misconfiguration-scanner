@@ -49,6 +49,19 @@ def test_format_json_returns_valid_json() -> None:
     assert parsed_output["total_score"] == 80
 
 
+def test_scan_result_to_json_returns_valid_json() -> None:
+    """
+    Verify scan result JSON output can be parsed back into data.
+    """
+    output = format_json(build_sample_scan_result())
+    parsed_output = json.loads(output)
+
+    assert parsed_output["url"] == "https://example.com"
+    assert parsed_output["timestamp"] == "2026-01-01T12:00:00+00:00"
+    assert parsed_output["findings"][0]["status"] == "Fail"
+    assert parsed_output["findings"][0]["severity"] == "High"
+
+
 def test_format_table_contains_finding_details() -> None:
     """
     Verify that table output includes core finding information.
@@ -60,3 +73,56 @@ def test_format_table_contains_finding_details() -> None:
     assert "Fail" in output
     assert "High" in output
     assert "HSTS header is missing" in output
+
+
+def test_format_scan_result_table_contains_expected_columns() -> None:
+    """
+    Verify table output includes the expected scanner report columns.
+    """
+    output = format_table(build_sample_scan_result())
+
+    assert "Check" in output
+    assert "Status" in output
+    assert "Severity" in output
+    assert "Description" in output
+
+
+def test_format_table_handles_empty_findings() -> None:
+    """
+    Verify table output remains valid when no findings are returned.
+    """
+    scan_result = ScanResult(
+        url="https://example.com",
+        timestamp=datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc),
+        findings=[],
+        total_score=100,
+    )
+
+    output = format_table(scan_result)
+
+    assert "Scan result for: https://example.com" in output
+    assert "No findings returned." in output
+
+
+def test_format_table_truncates_long_descriptions() -> None:
+    """
+    Verify long descriptions are shortened for readable terminal tables.
+    """
+    finding = Finding(
+        check_name="Content-Security-Policy",
+        status=Status.FAIL,
+        severity=Severity.HIGH,
+        description="x" * 100,
+        remediation="Add a Content-Security-Policy header.",
+    )
+    scan_result = ScanResult(
+        url="https://example.com",
+        timestamp=datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc),
+        findings=[finding],
+        total_score=80,
+    )
+
+    output = format_table(scan_result)
+
+    assert ("x" * 67) + "..." in output
+    assert "x" * 100 not in output

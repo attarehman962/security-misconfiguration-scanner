@@ -153,6 +153,20 @@ def test_cli_help_prints_usage(capsys: CaptureFixture[str]) -> None:
     assert "--verbose" in captured.out
 
 
+def test_cli_rejects_missing_url(capsys: CaptureFixture[str]) -> None:
+    """
+    Verify argparse shows usage and exits when --url is missing.
+    """
+    with pytest.raises(SystemExit) as exc_info:
+        cli.main([])
+
+    captured = capsys.readouterr()
+
+    assert exc_info.value.code == 2
+    assert "usage: security-scanner" in captured.err
+    assert "the following arguments are required: --url" in captured.err
+
+
 def test_cli_verbose_prints_progress_to_stderr(
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture[str],
@@ -171,7 +185,7 @@ def test_cli_verbose_prints_progress_to_stderr(
     assert "Scanning target: https://example.com" in captured.err
 
 
-def test_cli_returns_one_for_handled_scan_failure(
+def test_cli_returns_one_when_runner_fails(
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture[str],
 ) -> None:
@@ -223,6 +237,7 @@ def test_cli_returns_one_for_output_write_failure(
 
 def test_cli_rejects_invalid_url_before_scanning(
     monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture[str],
 ) -> None:
     """
     Verify invalid URLs fail during argument parsing before scanning starts.
@@ -240,7 +255,11 @@ def test_cli_rejects_invalid_url_before_scanning(
     with pytest.raises(SystemExit) as exc_info:
         cli.main(["--url", "example.com"])
 
+    captured = capsys.readouterr()
+
     assert exc_info.value.code == 2
+    assert "Invalid URL: must start with http:// or https://." in captured.err
+    assert "Traceback" not in captured.err
     assert scan_called is False
 
 

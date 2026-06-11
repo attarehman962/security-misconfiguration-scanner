@@ -1,10 +1,11 @@
-from argparse import ArgumentTypeError
 from datetime import datetime, timedelta, timezone
 
+import pytest
 from pytest import MonkeyPatch
 
 from security_scanner import (
     Finding,
+    InvalidURLError,
     ScanResult,
     Severity,
     SslCertificateError,
@@ -104,10 +105,8 @@ def test_run_scan_rejects_invalid_url_before_scanning(
 
     monkeypatch.setattr(runner, "run_full_scan", fake_run_full_scan)
 
-    try:
+    with pytest.raises(InvalidURLError, match="must start with"):
         runner.run_scan("example.com")
-    except ArgumentTypeError:
-        pass
 
     assert scan_called is False
 

@@ -12,6 +12,7 @@ def test_root_package_exports_main_public_api() -> None:
     assert callable(security_scanner.run_scan)
     assert callable(security_scanner.fetch_url)
     assert callable(security_scanner.format_json)
+    assert callable(security_scanner.configure_logging)
     assert callable(security_scanner.normalize_url)
     assert callable(security_scanner.serialize_scan_result)
     assert callable(security_scanner.get_ssl_expiry_date)

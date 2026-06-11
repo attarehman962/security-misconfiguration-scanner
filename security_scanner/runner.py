@@ -1,11 +1,13 @@
 """Main orchestration layer that connects fetchers, checks, and models."""
 
+from argparse import ArgumentTypeError
 from datetime import datetime, timezone
 from urllib.parse import urlsplit
 
 from security_scanner import (
     FetchResult,
     Finding,
+    InvalidURLError,
     ScanResult,
     Severity,
     SslCertificateError,
@@ -29,7 +31,11 @@ def run_scan(url: str) -> ScanResult:
     Returns:
         Complete ScanResult object.
     """
-    validated_url = validate_url(url)
+    try:
+        validated_url = validate_url(url)
+    except ArgumentTypeError as error:
+        raise InvalidURLError(str(error)) from error
+
     return run_full_scan(validated_url)
 
 

@@ -33,6 +33,7 @@ from security_scanner.url_utils import (
 from security_scanner.url_fetcher import DEFAULT_USER_AGENT, UrlFetcher
 from security_scanner.http_client import FetchResult, fetch_url
 from security_scanner.formatters import format_json, format_table
+from security_scanner.logging_config import configure_logging
 from security_scanner.validators import validate_url
 from security_scanner.checks import run_exposure_checks
 from security_scanner.scanners import run_header_checks
@@ -56,6 +57,7 @@ __all__ = [
     "UrlFetcher",
     "UrlScanResult",
     "build_root_path_url",
+    "configure_logging",
     "extract_hostname_and_port",
     "fetch_url",
     "format_json",

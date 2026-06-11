@@ -81,3 +81,39 @@ def test_scan_result_to_dict_serializes_timestamp_and_findings() -> None:
     assert serialized["timestamp"] == "2026-01-01T12:00:00+00:00"
     assert serialized["total_score"] == 100
     assert serialized["findings"] == [finding.to_dict()]
+
+
+def test_scan_result_to_dict_converts_nested_objects() -> None:
+    """
+    Verify ScanResult.to_dict() converts nested Finding objects safely.
+    """
+    finding = Finding(
+        check_name="Content-Security-Policy",
+        status=Status.FAIL,
+        severity=Severity.HIGH,
+        description="Content-Security-Policy header is missing.",
+        remediation="Add a Content-Security-Policy header.",
+    )
+    result = ScanResult(
+        url="https://example.com",
+        timestamp=datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc),
+        total_score=80,
+        findings=[finding],
+    )
+
+    serialized = result.to_dict()
+
+    assert serialized == {
+        "url": "https://example.com",
+        "timestamp": "2026-01-01T12:00:00+00:00",
+        "total_score": 80,
+        "findings": [
+            {
+                "check_name": "Content-Security-Policy",
+                "status": "Fail",
+                "severity": "High",
+                "description": "Content-Security-Policy header is missing.",
+                "remediation": "Add a Content-Security-Policy header.",
+            }
+        ],
+    }
