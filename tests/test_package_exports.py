@@ -9,6 +9,7 @@ def test_root_package_exports_main_public_api() -> None:
     assert security_scanner.Finding.__name__ == "Finding"
     assert security_scanner.Status.FAIL.value == "Fail"
     assert callable(security_scanner.run_full_scan)
+    assert callable(security_scanner.run_scan)
     assert callable(security_scanner.fetch_url)
     assert callable(security_scanner.format_json)
     assert callable(security_scanner.normalize_url)

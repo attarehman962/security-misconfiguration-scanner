@@ -9,7 +9,7 @@ from pytest import CaptureFixture, MonkeyPatch
 from security_scanner import Finding, ScanResult, Severity, Status, cli
 
 
-def fake_run_full_scan(url: str) -> ScanResult:
+def fake_run_scan(url: str) -> ScanResult:
     """
     Return a fake scan result for CLI tests.
 
@@ -45,7 +45,7 @@ def test_cli_prints_json_output(
     Verify that CLI prints valid JSON when --format json is used.
     """
     # Monkeypatch the scanner boundary so the test never performs HTTP requests.
-    monkeypatch.setattr(cli, "run_full_scan", fake_run_full_scan)
+    monkeypatch.setattr(cli, "run_scan", fake_run_scan)
 
     exit_code = cli.main(
         [
@@ -71,7 +71,7 @@ def test_cli_prints_table_output(
     """
     Verify that CLI prints table output by default.
     """
-    monkeypatch.setattr(cli, "run_full_scan", fake_run_full_scan)
+    monkeypatch.setattr(cli, "run_scan", fake_run_scan)
 
     exit_code = cli.main(["--url", "https://example.com"])
 
@@ -89,7 +89,7 @@ def test_cli_prints_explicit_table_output(
     """
     Verify that CLI prints table output when --format table is used.
     """
-    monkeypatch.setattr(cli, "run_full_scan", fake_run_full_scan)
+    monkeypatch.setattr(cli, "run_scan", fake_run_scan)
 
     exit_code = cli.main(
         [
@@ -114,7 +114,7 @@ def test_cli_writes_json_output_file(
     """
     Verify that --output saves JSON result to disk.
     """
-    monkeypatch.setattr(cli, "run_full_scan", fake_run_full_scan)
+    monkeypatch.setattr(cli, "run_scan", fake_run_scan)
 
     # tmp_path gives each test an isolated temporary directory.
     output_path = tmp_path / "reports" / "result.json"
@@ -160,7 +160,7 @@ def test_cli_verbose_prints_progress_to_stderr(
     """
     Verify --verbose prints progress without changing normal stdout output.
     """
-    monkeypatch.setattr(cli, "run_full_scan", fake_run_full_scan)
+    monkeypatch.setattr(cli, "run_scan", fake_run_scan)
 
     exit_code = cli.main(["--url", "https://example.com", "--verbose"])
 
@@ -182,7 +182,7 @@ def test_cli_returns_one_for_handled_scan_failure(
     def fake_scanner(url: str) -> ScanResult:
         raise RuntimeError(f"scan failed for {url}")
 
-    monkeypatch.setattr(cli, "run_full_scan", fake_scanner)
+    monkeypatch.setattr(cli, "run_scan", fake_scanner)
 
     exit_code = cli.main(["--url", "https://example.com"])
 
@@ -201,7 +201,7 @@ def test_cli_returns_one_for_output_write_failure(
     """
     Verify output write errors are handled with exit code 1.
     """
-    monkeypatch.setattr(cli, "run_full_scan", fake_run_full_scan)
+    monkeypatch.setattr(cli, "run_scan", fake_run_scan)
 
     output_directory = tmp_path / "report-directory"
     output_directory.mkdir()
@@ -233,9 +233,9 @@ def test_cli_rejects_invalid_url_before_scanning(
         # This flag proves argparse rejected the URL before scanning.
         nonlocal scan_called
         scan_called = True
-        return fake_run_full_scan(url)
+        return fake_run_scan(url)
 
-    monkeypatch.setattr(cli, "run_full_scan", fake_scanner)
+    monkeypatch.setattr(cli, "run_scan", fake_scanner)
 
     with pytest.raises(SystemExit) as exc_info:
         cli.main(["--url", "example.com"])
@@ -256,9 +256,9 @@ def test_cli_rejects_invalid_format_before_scanning(
         # This flag proves argparse rejected --format before scanning.
         nonlocal scan_called
         scan_called = True
-        return fake_run_full_scan(url)
+        return fake_run_scan(url)
 
-    monkeypatch.setattr(cli, "run_full_scan", fake_scanner)
+    monkeypatch.setattr(cli, "run_scan", fake_scanner)
 
     with pytest.raises(SystemExit) as exc_info:
         cli.main(

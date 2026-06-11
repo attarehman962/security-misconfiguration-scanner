@@ -36,7 +36,7 @@ from security_scanner.formatters import format_json, format_table
 from security_scanner.validators import validate_url
 from security_scanner.checks import run_exposure_checks
 from security_scanner.scanners import run_header_checks
-from security_scanner.runner import run_full_scan
+from security_scanner.runner import run_full_scan, run_scan
 
 __all__ = [
     "ALLOWED_SCHEMES",
@@ -65,6 +65,7 @@ __all__ = [
     "run_exposure_checks",
     "run_full_scan",
     "run_header_checks",
+    "run_scan",
     "serialize_finding",
     "serialize_scan_result",
     "validate_url",

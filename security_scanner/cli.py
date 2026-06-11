@@ -5,7 +5,7 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
-from security_scanner import format_json, format_table, run_full_scan, validate_url
+from security_scanner import format_json, format_table, run_scan, validate_url
 
 SUPPORTED_OUTPUT_FORMATS: tuple[str, str] = ("json", "table")
 
@@ -36,7 +36,7 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
-    # argparse calls validate_url before run_full_scan(), so invalid targets
+    # argparse calls validate_url before run_scan(), so invalid targets
     # fail early and no network request is made for bad CLI input.
     parser.add_argument(
         "--url",
@@ -101,7 +101,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"Scanning target: {parsed_arguments.url}", file=sys.stderr)
 
         # The CLI only coordinates input/output; scanner logic lives in runner.py.
-        scan_result = run_full_scan(parsed_arguments.url)
+        scan_result = run_scan(parsed_arguments.url)
     except RuntimeError as error:
         print(f"Scanner failed: {error}", file=sys.stderr)
         return 1

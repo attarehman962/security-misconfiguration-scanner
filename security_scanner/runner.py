@@ -15,7 +15,22 @@ from security_scanner import (
     get_ssl_expiry_date,
     run_exposure_checks,
     run_header_checks,
+    validate_url,
 )
+
+
+def run_scan(url: str) -> ScanResult:
+    """
+    Validate a target URL and run the full scanner pipeline.
+
+    Args:
+        url: Raw target URL string.
+
+    Returns:
+        Complete ScanResult object.
+    """
+    validated_url = validate_url(url)
+    return run_full_scan(validated_url)
 
 
 def run_full_scan(url: str) -> ScanResult:

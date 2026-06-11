@@ -1,3 +1,4 @@
+from argparse import ArgumentTypeError
 from datetime import datetime, timedelta, timezone
 
 from pytest import MonkeyPatch
@@ -61,6 +62,54 @@ def fake_run_exposure_checks(
 ) -> list[Finding]:
     """Keep runner tests focused by disabling real exposure probes."""
     return []
+
+
+def test_run_scan_validates_url_then_runs_full_scan(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    called_with_url = ""
+
+    def fake_run_full_scan(url: str) -> ScanResult:
+        nonlocal called_with_url
+        called_with_url = url
+        return ScanResult(
+            url=url,
+            timestamp=datetime.now(timezone.utc),
+            findings=[],
+            total_score=100,
+        )
+
+    monkeypatch.setattr(runner, "run_full_scan", fake_run_full_scan)
+
+    result = runner.run_scan(" https://example.com/ ")
+
+    assert called_with_url == "https://example.com"
+    assert result.url == "https://example.com"
+
+
+def test_run_scan_rejects_invalid_url_before_scanning(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    scan_called = False
+
+    def fake_run_full_scan(url: str) -> ScanResult:
+        nonlocal scan_called
+        scan_called = True
+        return ScanResult(
+            url=url,
+            timestamp=datetime.now(timezone.utc),
+            findings=[],
+            total_score=100,
+        )
+
+    monkeypatch.setattr(runner, "run_full_scan", fake_run_full_scan)
+
+    try:
+        runner.run_scan("example.com")
+    except ArgumentTypeError:
+        pass
+
+    assert scan_called is False
 
 
 def test_run_full_scan_combines_header_and_ssl_findings(
