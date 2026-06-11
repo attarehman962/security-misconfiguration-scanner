@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 .python-version
+.pytype/
 
 # Virtual environments
 .venv/
@@ -23,6 +24,8 @@ wheelhouse/
 .pytest_cache/
 .pytest_tmp/
 .mypy_cache/
+.dmypy.json
+dmypy.json
 .pyright/
 .pyre/
 .ruff_cache/
@@ -31,6 +34,7 @@ wheelhouse/
 .coverage
 .coverage.*
 coverage.xml
+coverage.json
 htmlcov/
 .hypothesis/
 
@@ -42,16 +46,22 @@ htmlcov/
 # IDE and OS files
 .vscode/
 .idea/
+*.iml
 *.swp
 *.swo
+*~
 .DS_Store
 Thumbs.db
 
 # Local run output
+logs/
 *.log
+*.log.*
 result.json
+results.json
 scan-result.json
 scan_results.json
+scan_results/
 reports/
 output/
 tmp/
