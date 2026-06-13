@@ -8,9 +8,7 @@ from urllib.parse import urljoin
 
 from playwright.async_api import (
     Browser,
-    BrowserType,
     Page,
-    Playwright,
     async_playwright,
 )
 from playwright.async_api import Error as PlaywrightError
@@ -57,20 +55,6 @@ def normalize_source_url(raw_source: str) -> str:
         return stripped_source
 
     return Path(stripped_source).resolve().as_uri()
-
-
-def get_browser_type(
-    playwright_browser_name: str,
-    playwright: Playwright,
-) -> BrowserType:
-    """Return the requested Playwright browser type."""
-    if playwright_browser_name == "chromium":
-        return playwright.chromium
-
-    if playwright_browser_name == "firefox":
-        return playwright.firefox
-
-    return playwright.webkit
 
 
 async def read_optional_text(
@@ -166,14 +150,10 @@ class DynamicPageScraper:
             page: Page | None = None
 
             try:
-                browser_type = get_browser_type(config.browser, playwright)
-                browser_channel = (
-                    config.browser_channel if config.browser == "chromium" else None
-                )
-                browser = await browser_type.launch(
+                browser = await playwright.chromium.launch(
                     headless=config.headless,
-                    channel=browser_channel,
-                    executable_path=config.browser_executable_path,
+                    channel=config.browser_channel,
+                    timeout=config.timeout_ms,
                 )
                 page = await browser.new_page()
 

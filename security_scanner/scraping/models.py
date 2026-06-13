@@ -3,9 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Literal
-
-BrowserName = Literal["chromium", "firefox", "webkit"]
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -20,9 +18,7 @@ class ScrapeConfig:
     timeout_ms: int = 15_000
     max_items: int = 50
     headless: bool = True
-    browser: BrowserName = "chromium"
     browser_channel: str | None = None
-    browser_executable_path: str | None = None
     screenshot_dir: Path = Path("artifacts/screenshots")
 
     def __post_init__(self) -> None:
@@ -41,9 +37,6 @@ class ScrapeConfig:
 
         if self.max_items <= 0:
             raise ValueError("max_items must be greater than zero")
-
-        if self.browser not in {"chromium", "firefox", "webkit"}:
-            raise ValueError("browser must be chromium, firefox, or webkit")
 
 
 @dataclass(frozen=True)

@@ -29,13 +29,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--timeout-ms", type=int, default=15_000)
     parser.add_argument("--max-items", type=int, default=50)
     parser.add_argument("--show-browser", action="store_true")
-    parser.add_argument(
-        "--browser",
-        choices=["chromium", "firefox", "webkit"],
-        default="chromium",
-    )
     parser.add_argument("--browser-channel", help="Browser channel, e.g. chrome")
-    parser.add_argument("--browser-executable-path", help="Browser executable path")
 
     return parser
 
@@ -54,9 +48,7 @@ async def main_async() -> int:
         timeout_ms=args.timeout_ms,
         max_items=args.max_items,
         headless=not args.show_browser,
-        browser=args.browser,
         browser_channel=args.browser_channel,
-        browser_executable_path=args.browser_executable_path,
     )
 
     scraper = DynamicPageScraper()
