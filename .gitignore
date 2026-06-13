@@ -65,6 +65,7 @@ scan_results.json
 scan_results/
 reports/
 output/
+artifacts/
 tmp/
 temp/
 learn/

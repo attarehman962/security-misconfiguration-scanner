@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Dynamic Product Listing</title>
+  </head>
+  <body>
+    <h1>Products</h1>
+    <div id="status">Loading products with JavaScript...</div>
+    <section id="products"></section>
+
+    <script>
+      const products = [
+        {
+          title: "Security Headers Audit",
+          price: "$49",
+          url: "/products/security-headers-audit",
+        },
+        {
+          title: "CORS Misconfiguration Report",
+          price: "$79",
+          url: "/products/cors-report",
+        },
+        {
+          title: "SSL Expiry Monitoring",
+          price: "$39",
+          url: "/products/ssl-monitoring",
+        },
+      ];
+
+      setTimeout(() => {
+        const productsContainer = document.querySelector("#products");
+        const status = document.querySelector("#status");
+
+        products.forEach((product) => {
+          const article = document.createElement("article");
+          article.className = "product-card";
+
+          article.innerHTML = `
+          <h2 class="product-title">${product.title}</h2>
+          <p class="product-price">${product.price}</p>
+          <a class="product-link" href="${product.url}">View product</a>
+        `;
+
+          productsContainer.appendChild(article);
+        });
+
+        status.textContent = "Products loaded";
+      }, 1200);
+    </script>
+  </body>
+</html>
