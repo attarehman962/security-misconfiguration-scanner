@@ -1,18 +1,17 @@
 # Security Misconfiguration Scanner API
 
 A FastAPI-based API for running security misconfiguration scans against target
-URLs. The current implementation exposes health checks, a mock scan response,
-empty scan history, and structured validation errors.
+URLs. The current implementation exposes versioned scan routes, health checks,
+mock scan responses, empty scan history, and structured error responses.
 
 ## Features
 
 - FastAPI application factory in `app/main.py`
-- Health check endpoint with UTC timestamp
-- URL scan endpoint with Pydantic request validation
-- Custom validation error response format
-- Modular routers, schemas, services, and configuration
-- Placeholder auth and scraping routers for upcoming features
-- Pytest coverage for health and scan routes
+- Versioned API routes under `/api/v1`
+- Dependency-injected scan service
+- Pydantic request and response schemas
+- Centralized exception handling
+- Pytest coverage for scan routes and error responses
 
 ## Project Structure
 
@@ -23,26 +22,29 @@ pytest.ini
 app/
   __init__.py
   main.py
+  api/
+    __init__.py
+    dependencies.py
+    routes/
+      __init__.py
+      scans.py
   core/
     __init__.py
     config.py
-  routers/
-    __init__.py
-    auth.py
-    scan.py
-    scrape.py
+    exceptions.py
   schemas/
     __init__.py
-    auth.py
-    error.py
-    scan.py
+    errors.py
+    scans.py
   services/
     __init__.py
-    scanner_service.py
-    scraping_service.py
+    exceptions.py
+    scans.py
 tests/
-  test_health.py
-  test_scan_routes.py
+  api/
+    __init__.py
+    test_scan_errors.py
+    test_scans.py
 ```
 
 ## Setup
@@ -90,28 +92,29 @@ http://127.0.0.1:8000/docs
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
-| `GET` | `/health` | Returns API status and a UTC timestamp. |
-| `POST` | `/scan` | Accepts a target URL and returns a mock security scan result. |
-| `GET` | `/scans` | Returns scan history. Currently returns an empty list. |
+| `GET` | `/api/v1/health` | Returns API status and a UTC timestamp. |
+| `POST` | `/api/v1/scans` | Accepts a target URL and returns a mock security scan result. |
+| `GET` | `/api/v1/scans` | Returns scan history. Currently returns an empty list. |
+| `GET` | `/api/v1/scans/{scan_id}` | Returns a scan by ID or a consistent `404` response. |
 
 ### Example Scan Request
 
 ```bash
-curl -X POST http://127.0.0.1:8000/scan \
+curl -X POST http://127.0.0.1:8000/api/v1/scans \
   -H "Content-Type: application/json" \
-  -d '{"url": "https://example.com"}'
+  -d '{"target_url": "https://example.com"}'
 ```
 
 ### Example Validation Error
 
 ```bash
-curl -X POST http://127.0.0.1:8000/scan \
+curl -X POST http://127.0.0.1:8000/api/v1/scans \
   -H "Content-Type: application/json" \
-  -d '{"url": "not-a-valid-url"}'
+  -d '{"target_url": "not-a-valid-url"}'
 ```
 
-The API returns a custom `422` response with a top-level message and field-level
-validation errors.
+The API returns a `422` response with a stable error code and field-level
+validation details.
 
 ## Run Tests
 
@@ -124,11 +127,11 @@ pytest
 Expected result:
 
 ```txt
-5 passed
+8 passed
 ```
 
 ## Notes
 
-The scan endpoint currently returns mock data from
-`app/services/scanner_service.py`. Future work can replace this service with
-real scanner integrations and persistent scan storage.
+The scan endpoint currently returns mock data from `app/services/scans.py`.
+Future work can replace this service with real scanner integrations and
+persistent scan storage.

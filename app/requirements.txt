@@ -1,4 +1,5 @@
 fastapi[standard]
+starlette<1.0
 pytest
 pydantic[email]
-httpx2
+httpx
