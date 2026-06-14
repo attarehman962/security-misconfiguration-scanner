@@ -58,6 +58,7 @@ class ScanResponse(BaseModel):
         ...,
         ge=0,
         le=100,
+        examples =[85],
         description="Security score from 0 to 100.",
     )
 

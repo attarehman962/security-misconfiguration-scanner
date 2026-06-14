@@ -1,2 +1,4 @@
 fastapi[standard]
 pytest
+pydantic[email]
+httpx2

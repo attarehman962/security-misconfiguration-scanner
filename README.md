@@ -2,18 +2,20 @@
 
 ## Purpose
 
-Security Misconfiguration Scanner is a Python command-line tool for checking
-common web security misconfigurations on an authorized target URL. It fetches
-one URL, inspects response headers, checks selected exposure risks, checks basic
-TLS certificate health, calculates a simple score, and prints the result as a
-terminal table or JSON.
+Security Misconfiguration Scanner is a Python project for checking common web
+security misconfigurations on an authorized target URL. The repository contains
+the original command-line scanner package and a new FastAPI app in `app/`.
+
+The CLI fetches one URL, inspects response headers, checks selected exposure
+risks, checks basic TLS certificate health, calculates a simple score, and
+prints the result as a terminal table or JSON.
 
 This project is designed for learning, portfolio work, and safe authorized
 security testing. It is not a replacement for a professional penetration test.
 
 ## Features
 
-The scanner currently reports:
+The project currently includes:
 
 - URL fetch success or failure.
 - Final URL after redirects.
@@ -29,8 +31,11 @@ The scanner currently reports:
 - A simple total score from `0` to `100`.
 - Table output for humans and JSON output for automation.
 - JSON report saving with `--output`.
+- A FastAPI app under `app/` with health, scan, and scan history routes.
 
 ## Tech Stack
+
+### CLI Scanner
 
 - Python `3.14+`
 - `httpx` for HTTP requests
@@ -41,7 +46,16 @@ The scanner currently reports:
 - `mypy` for static type checking
 - `ruff` for linting
 
+### API App
+
+- FastAPI for HTTP routes and interactive API docs
+- Pydantic for request and response schemas
+- Uvicorn/FastAPI development server
+- Pytest with FastAPI `TestClient`
+
 ## Installation
+
+### CLI Scanner
 
 Create and activate a virtual environment:
 
@@ -63,7 +77,20 @@ available inside your virtual environment:
 python -m pip install -e .
 ```
 
+### API App
+
+The API app has its own dependency file and tests inside `app/`:
+
+```bash
+cd app
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+```
+
 ## Usage Examples
+
+### CLI Scanner
 
 Show help:
 
@@ -99,6 +126,40 @@ You can also run the package as a module:
 
 ```bash
 python -m security_scanner --url https://example.com --format table
+```
+
+### API App
+
+From the `app/` directory, start the API development server:
+
+```bash
+fastapi dev app/main.py
+```
+
+Or run it with Uvicorn:
+
+```bash
+uvicorn app.main:app --reload
+```
+
+The API runs at:
+
+```text
+http://127.0.0.1:8000
+```
+
+Interactive docs are available at:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+Example API scan request:
+
+```bash
+curl -X POST http://127.0.0.1:8000/scan \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://example.com"}'
 ```
 
 ## Project Structure
@@ -142,6 +203,30 @@ tests/
   test_url_utils.py
   test_validators.py
   test_package_exports.py
+
+app/
+  README.md            API-specific setup and usage notes
+  requirements.txt     API dependencies
+  pytest.ini           API test configuration
+  app/
+    main.py            FastAPI application factory
+    core/config.py     API settings
+    routers/
+      auth.py          Placeholder auth router
+      scan.py          Health, scan, and scan history routes
+      scrape.py        Placeholder scraping router
+    schemas/
+      auth.py          Auth schema module
+      error.py         Custom validation error schemas
+      scan.py          Health and scan request/response schemas
+    services/
+      scanner_service.py
+                      Mock scanner response service
+      scraping_service.py
+                      Placeholder scraping service
+  tests/
+    test_health.py
+    test_scan_routes.py
 ```
 
 ## Complete Workflow
@@ -594,6 +679,13 @@ Run Ruff if installed:
 .venv/bin/python -B -m ruff check security_scanner tests
 ```
 
+Run API app tests:
+
+```bash
+cd app
+python -m pytest
+```
+
 Current tests cover:
 
 - CLI help, URL validation, JSON output, table output, and file output.
@@ -606,6 +698,7 @@ Current tests cover:
 - Models, serializers, and formatters.
 - `python -m security_scanner` entrypoint.
 - Public package exports from `__init__.py` files.
+- API health, scan, validation error, and empty scan history routes.
 
 ## Good Practices Used
 
@@ -718,6 +811,13 @@ Run tests:
 .venv/bin/python -B -m pytest
 ```
 
+Run API tests:
+
+```bash
+cd app
+python -m pytest
+```
+
 Run type checks:
 
 ```bash
@@ -753,7 +853,7 @@ git status
 Stage files:
 
 ```bash
-git add README.md pyproject.toml requirements.txt security_scanner tests .gitignore
+git add README.md app .gitignore pyproject.toml requirements.txt security_scanner tests
 ```
 
 Commit:
@@ -794,10 +894,12 @@ Before contributing or pushing changes:
 
 - Keep one clear package: `security_scanner`.
 - Keep CLI logic in `cli.py` and scanner orchestration in `runner.py`.
+- Keep API routes, schemas, and services inside `app/app/`.
 - Add or update tests for behavior changes.
 - Use fake responses and monkeypatching instead of real network calls in unit
   tests.
-- Run `python -m pytest` and `python -m mypy security_scanner tests`.
+- Run `python -m pytest`, `python -m mypy security_scanner tests`, and the API
+  tests from `app/` when touching the FastAPI service.
 - Keep dependencies minimal.
 - Do not commit virtual environments, caches, logs, coverage files, or generated
   reports.
