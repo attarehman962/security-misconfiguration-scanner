@@ -1,6 +1,9 @@
+from typing import cast
+
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from starlette.types import ExceptionHandler
 
 from app.schemas.errors import ErrorResponse, FieldValidationError
 from app.services.exceptions import InvalidScanTargetError, ScanNotFoundError
@@ -69,10 +72,19 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
 
 def register_exception_handlers(app: FastAPI) -> None:
     """Register application-wide exception handlers."""
-    app.add_exception_handler(RequestValidationError, validation_exception_handler)
-    app.add_exception_handler(ScanNotFoundError, scan_not_found_exception_handler)
+    app.add_exception_handler(
+        RequestValidationError,
+        cast(ExceptionHandler, validation_exception_handler),
+    )
+    app.add_exception_handler(
+        ScanNotFoundError,
+        cast(ExceptionHandler, scan_not_found_exception_handler),
+    )
     app.add_exception_handler(
         InvalidScanTargetError,
-        invalid_scan_target_exception_handler,
+        cast(ExceptionHandler, invalid_scan_target_exception_handler),
     )
-    app.add_exception_handler(Exception, unhandled_exception_handler)
+    app.add_exception_handler(
+        Exception,
+        cast(ExceptionHandler, unhandled_exception_handler),
+    )

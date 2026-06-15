@@ -8,3 +8,7 @@ class InvalidScanTargetError(ScanServiceError):
 
 class ScanNotFoundError(ScanServiceError):
     """Raised when a requested scan cannot be found."""
+
+
+class ScannerExecutionError(RuntimeError):
+    """Raised when the scanner fails during execution."""

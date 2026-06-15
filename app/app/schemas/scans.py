@@ -14,6 +14,10 @@ class ScanCreateRequest(BaseModel):
         description="HTTP or HTTPS URL that will be scanned.",
         examples=["https://example.com"],
     )
+    include_exposed_files: bool = Field(
+        default=True,
+        description="Whether to include exposed file checks in the scan.",
+    )
 
 
 class FindingResponse(BaseModel):
