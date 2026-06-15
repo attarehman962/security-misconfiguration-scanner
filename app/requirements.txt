@@ -5,4 +5,7 @@ pydantic[email]
 pydantic-settings
 SQLAlchemy
 alembic
+python-jose[cryptography]
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
 httpx
