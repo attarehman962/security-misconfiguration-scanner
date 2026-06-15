@@ -2,4 +2,7 @@ fastapi[standard]
 starlette<1.0
 pytest
 pydantic[email]
+pydantic-settings
+SQLAlchemy
+alembic
 httpx

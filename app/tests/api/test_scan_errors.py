@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 import asyncio
+import logging
 
 import httpx
 
@@ -175,7 +176,7 @@ def test_create_scan_business_rejection_returns_400() -> None:
     app.dependency_overrides.clear()
 
 
-def test_unhandled_exception_returns_clean_500_without_traceback() -> None:
+def test_unhandled_exception_returns_clean_500_without_traceback(caplog) -> None:
     """
     Verify unexpected exceptions never expose raw internal details.
 
@@ -185,12 +186,13 @@ def test_unhandled_exception_returns_clean_500_without_traceback() -> None:
     app = create_app()
     app.dependency_overrides[get_scan_service] = get_crashing_scan_service
 
-    response = request(
-        app,
-        "POST",
-        "/api/v1/scans",
-        json={"target_url": "https://example.com"},
-    )
+    with caplog.at_level(logging.ERROR, logger="app.core.exceptions"):
+        response = request(
+            app,
+            "POST",
+            "/api/v1/scans",
+            json={"target_url": "https://example.com"},
+        )
 
     assert response.status_code == 500
     response_body = response.json()
@@ -201,5 +203,8 @@ def test_unhandled_exception_returns_clean_500_without_traceback() -> None:
     }
     assert "database password leaked here" not in response.text
     assert "Traceback" not in response.text
+    assert "Unhandled exception while processing POST /api/v1/scans" in caplog.text
+    assert "database password leaked here" in caplog.text
+    assert "Traceback" in caplog.text
 
     app.dependency_overrides.clear()

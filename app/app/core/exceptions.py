@@ -1,3 +1,4 @@
+import logging
 from typing import cast
 
 from fastapi import FastAPI, Request, status
@@ -7,6 +8,9 @@ from starlette.types import ExceptionHandler
 
 from app.schemas.errors import ErrorResponse, FieldValidationError
 from app.services.exceptions import InvalidScanTargetError, ScanNotFoundError
+
+
+logger = logging.getLogger(__name__)
 
 
 def _field_name(location: tuple[object, ...]) -> str:
@@ -61,6 +65,11 @@ async def invalid_scan_target_exception_handler(
 
 async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Return a sanitized response for unexpected server errors."""
+    logger.exception(
+        "Unhandled exception while processing %s %s",
+        request.method,
+        request.url.path,
+    )
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content=ErrorResponse(
