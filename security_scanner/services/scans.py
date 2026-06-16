@@ -6,6 +6,9 @@ from security_scanner.services.exceptions import (
     InvalidScanTargetError,
     ScanNotFoundError,
 )
+from security_scanner.services.scan_job_store import InMemoryScanJobStore, ScanJob
+
+_job_store = InMemoryScanJobStore()
 
 
 class ScanService:
@@ -53,3 +56,19 @@ class ScanService:
     def get_scan_by_id(self, scan_id: str) -> ScanResponse:
         """Return a scan by ID or raise a not-found service error."""
         raise ScanNotFoundError(f"Scan '{scan_id}' was not found.")
+
+
+def create_scan(url: str) -> ScanJob:
+    """
+    Create a new scan job.
+    """
+
+    return _job_store.create_job(url)
+
+
+def get_scan(scan_id: str) -> ScanJob | None:
+    """
+    Retrieve scan job.
+    """
+
+    return _job_store.get_job(scan_id)

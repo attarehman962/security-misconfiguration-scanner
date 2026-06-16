@@ -5,8 +5,13 @@ from security_scanner.schemas.errors import ErrorResponse, FieldValidationError
 from security_scanner.schemas.scans import (
     FindingResponse,
     HealthResponse,
+    ScanAcceptedResponse,
     ScanCreateRequest,
     ScanResponse,
+    ScanResultResponse,
+    ScanStartRequest,
+    ScanStatusResponse,
+    scan_result_to_response,
 )
 
 __all__ = [
@@ -14,10 +19,15 @@ __all__ = [
     "FieldValidationError",
     "FindingResponse",
     "HealthResponse",
+    "ScanAcceptedResponse",
     "ScanCreateRequest",
     "ScanResponse",
+    "ScanResultResponse",
+    "ScanStartRequest",
+    "ScanStatusResponse",
     "Token",
     "UserCreate",
     "UserLogin",
     "UserPublic",
+    "scan_result_to_response",
 ]

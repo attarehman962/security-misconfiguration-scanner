@@ -19,6 +19,14 @@ from security_scanner.utils import (
 logger = logging.getLogger(__name__)
 
 
+class SecurityMisconfigurationScanner:
+    """Concrete scanner adapter used by API background jobs."""
+
+    def scan(self, url: str) -> ScanResult:
+        """Run the same scanner pipeline used by the CLI."""
+        return run_scan(url)
+
+
 def run_scan(url: str) -> ScanResult:
     """
     Validate a target URL and run the full scanner pipeline.
