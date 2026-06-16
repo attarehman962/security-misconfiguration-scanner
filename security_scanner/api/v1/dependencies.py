@@ -9,20 +9,20 @@ from security_scanner.db import get_db
 from security_scanner.models import User
 from security_scanner.repositories import get_user_by_id
 from security_scanner.scanner import SecurityMisconfigurationScanner
+from security_scanner.services import ScanService
 from security_scanner.services.scan_job_store import InMemoryScanJobStore
 from security_scanner.services.scan_runner import ScannerProtocol
-from security_scanner.services import ScanService
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 scan_job_store = InMemoryScanJobStore()
 
 
-def get_scan_job_store() -> InMemoryScanJobStore:
+async def get_scan_job_store() -> InMemoryScanJobStore:
     """Return the application scan job store."""
     return scan_job_store
 
 
-def get_scanner() -> ScannerProtocol:
+async def get_scanner() -> ScannerProtocol:
     """Return the real scanner implementation."""
     return SecurityMisconfigurationScanner()
 

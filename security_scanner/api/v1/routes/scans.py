@@ -64,7 +64,7 @@ def _scan_job_to_response(scan_job: ScanJob) -> ScanStatusResponse:
     status_code=status.HTTP_202_ACCEPTED,
     summary="Start a background security scan",
 )
-def start_scan(
+async def start_scan(
     request: ScanStartRequest,
     background_tasks: BackgroundTasks,
     scanner: ScannerDependency,
@@ -85,7 +85,7 @@ def start_scan(
     status_code=status.HTTP_202_ACCEPTED,
     summary="Start a background security scan",
 )
-def create_scan(
+async def create_scan(
     request: ScanCreateRequest,
     background_tasks: BackgroundTasks,
     scanner: ScannerDependency,
@@ -106,7 +106,7 @@ def create_scan(
     status_code=status.HTTP_200_OK,
     summary="List background security scans",
 )
-def list_scans(
+async def list_scans(
     job_store: ScanJobStoreDependency,
 ) -> list[ScanStatusResponse]:
     """Return known background scan jobs."""
@@ -119,7 +119,7 @@ def list_scans(
     status_code=status.HTTP_200_OK,
     summary="Get background security scan status",
 )
-def get_scan_status(
+async def get_scan_status(
     scan_id: str,
     job_store: ScanJobStoreDependency,
 ) -> ScanStatusResponse:

@@ -1,74 +1,49 @@
 import asyncio
 import logging
-from datetime import UTC, datetime
 
 import httpx
 from fastapi import FastAPI
-from pytest import LogCaptureFixture
+from pytest import LogCaptureFixture, MonkeyPatch
 
-from security_scanner.api.v1.dependencies import get_scan_service
+from security_scanner.api.v1.dependencies import get_scan_job_store, get_scanner
+from security_scanner.api.v1.routes import scans as scans_route
 from security_scanner.main import create_app
-from security_scanner.schemas import ScanResponse
+from security_scanner.models import ScanResult
 from security_scanner.services import InvalidScanTargetError
+from security_scanner.services.scan_job_store import InMemoryScanJobStore
 
 
-class FakeScanService:
-    """Fake scan service used to avoid real scanner/network calls in tests."""
+class FakeScanner:
+    """Fake scanner used to avoid real network calls in tests."""
 
-    def create_scan(self, target_url: str) -> ScanResponse:
-        """Return a fake successful scan response."""
-        return ScanResponse(
-            id="scan_test_123",
-            target_url=target_url,
-            status="completed",
-            created_at=datetime.now(UTC),
-            findings_count=0,
-        )
-
-    def get_scan_by_id(self, scan_id: str) -> ScanResponse:
-        """Always simulate a missing scan."""
-        raise NotImplementedError("Override this method in specific tests.")
+    def scan(self, url: str) -> ScanResult:
+        """Raise an error when a test did not expect scanner execution."""
+        raise AssertionError("Scanner should not run in this test.")
 
 
-class RejectingScanService(FakeScanService):
-    """Fake service that rejects a business-invalid scan target."""
+class FailingScanner:
+    """Fake scanner that simulates a background scan failure."""
 
-    def create_scan(self, target_url: str) -> ScanResponse:
-        """Raise a business validation error."""
+    def scan(self, url: str) -> ScanResult:
+        """Raise a business validation error during scan execution."""
         raise InvalidScanTargetError("This target is not allowed.")
 
 
-class CrashingScanService(FakeScanService):
-    """Fake service that simulates an unexpected server failure."""
+def build_test_app() -> FastAPI:
+    """Create an app with an isolated scan store and fake scanner."""
+    app = create_app()
+    job_store = InMemoryScanJobStore()
+    app.state.scan_job_store = job_store
 
-    def create_scan(self, target_url: str) -> ScanResponse:
-        """Raise an unexpected runtime error."""
-        raise RuntimeError("database password leaked here")
+    async def override_get_scan_job_store() -> InMemoryScanJobStore:
+        return job_store
 
+    async def override_get_scanner() -> FakeScanner:
+        return FakeScanner()
 
-class MissingScanService(FakeScanService):
-    """Fake service that returns no scan for any scan ID."""
-
-    def get_scan_by_id(self, scan_id: str) -> ScanResponse:
-        """Simulate missing scan behavior."""
-        from security_scanner.services import ScanNotFoundError
-
-        raise ScanNotFoundError(f"Scan '{scan_id}' was not found.")
-
-
-async def get_missing_scan_service() -> MissingScanService:
-    """Return a fake service that raises not-found errors."""
-    return MissingScanService()
-
-
-async def get_rejecting_scan_service() -> RejectingScanService:
-    """Return a fake service that rejects scan creation."""
-    return RejectingScanService()
-
-
-async def get_crashing_scan_service() -> CrashingScanService:
-    """Return a fake service that simulates an unexpected failure."""
-    return CrashingScanService()
+    app.dependency_overrides[get_scan_job_store] = override_get_scan_job_store
+    app.dependency_overrides[get_scanner] = override_get_scanner
+    return app
 
 
 def request(app: FastAPI, method: str, path: str, **kwargs: object) -> httpx.Response:
@@ -92,7 +67,7 @@ def test_create_scan_rejects_invalid_url_with_422() -> None:
     Production reason:
     garbage input must not reach HTTP, SSL, CORS, or Playwright scanner logic.
     """
-    app = create_app()
+    app = build_test_app()
 
     response = request(
         app,
@@ -115,7 +90,7 @@ def test_create_scan_rejects_unsupported_scheme_with_422() -> None:
     Production reason:
     scanner should not process ftp/file/javascript-style targets.
     """
-    app = create_app()
+    app = build_test_app()
 
     response = request(
         app,
@@ -138,29 +113,71 @@ def test_get_missing_scan_returns_consistent_404() -> None:
     Production reason:
     frontend/report pages need a predictable missing-resource response.
     """
-    app = create_app()
-    app.dependency_overrides[get_scan_service] = get_missing_scan_service
+    app = build_test_app()
 
     response = request(app, "GET", "/api/v1/scans/missing-id")
 
     assert response.status_code == 404
     assert response.json() == {
-        "error": "not_found",
-        "detail": "Scan 'missing-id' was not found.",
+        "detail": "Scan not found",
     }
 
-    app.dependency_overrides.clear()
 
-
-def test_create_scan_business_rejection_returns_400() -> None:
+def test_create_scan_business_rejection_is_recorded_as_failed_job(
+    monkeypatch: MonkeyPatch,
+) -> None:
     """
-    Verify business-rule rejection returns 400 with consistent JSON.
+    Verify scanner business-rule rejection is recorded on the background job.
 
     Production reason:
-    valid JSON can still be rejected by scanner policy.
+    valid JSON can still fail scanner policy after a job is accepted.
     """
-    app = create_app()
-    app.dependency_overrides[get_scan_service] = get_rejecting_scan_service
+    app = build_test_app()
+
+    async def override_get_scanner() -> FailingScanner:
+        return FailingScanner()
+
+    app.dependency_overrides[get_scanner] = override_get_scanner
+
+    async def skip_background_scan(*args: object) -> None:
+        return None
+
+    monkeypatch.setattr(scans_route, "run_scan_job", skip_background_scan)
+
+    response = request(
+        app,
+        "POST",
+        "/api/v1/scans",
+        json={"target_url": "https://example.com"},
+    )
+
+    assert response.status_code == 202
+
+    response_body = response.json()
+    app.state.scan_job_store.mark_failed(
+        response_body["scan_id"],
+        "This target is not allowed.",
+    )
+    status_response = request(app, "GET", response_body["status_url"])
+
+    assert status_response.status_code == 200
+    assert status_response.json()["status"] == "failed"
+    assert status_response.json()["error_message"] == "This target is not allowed."
+
+
+def test_scanner_dependency_business_rejection_returns_400() -> None:
+    """
+    Verify request-time scanner setup rejections return consistent JSON.
+
+    Production reason:
+    policy errors before a job is queued should be surfaced as client errors.
+    """
+    app = build_test_app()
+
+    async def reject_scanner_setup() -> FakeScanner:
+        raise InvalidScanTargetError("This target is not allowed.")
+
+    app.dependency_overrides[get_scanner] = reject_scanner_setup
 
     response = request(
         app,
@@ -175,8 +192,6 @@ def test_create_scan_business_rejection_returns_400() -> None:
         "detail": "This target is not allowed.",
     }
 
-    app.dependency_overrides.clear()
-
 
 def test_unhandled_exception_returns_clean_500_without_traceback(
     caplog: LogCaptureFixture,
@@ -187,8 +202,12 @@ def test_unhandled_exception_returns_clean_500_without_traceback(
     Production reason:
     500 responses must not leak secrets, paths, tracebacks, or package details.
     """
-    app = create_app()
-    app.dependency_overrides[get_scan_service] = get_crashing_scan_service
+    app = build_test_app()
+
+    async def crash_scanner_setup() -> FakeScanner:
+        raise RuntimeError("database password leaked here")
+
+    app.dependency_overrides[get_scanner] = crash_scanner_setup
 
     with caplog.at_level(logging.ERROR, logger="security_scanner.core.exceptions"):
         response = request(
@@ -210,5 +229,3 @@ def test_unhandled_exception_returns_clean_500_without_traceback(
     assert "Unhandled exception while processing POST /api/v1/scans" in caplog.text
     assert "database password leaked here" in caplog.text
     assert "Traceback" in caplog.text
-
-    app.dependency_overrides.clear()
