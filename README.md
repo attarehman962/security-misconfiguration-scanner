@@ -139,7 +139,7 @@ fastapi dev app/main.py
 Or run it with Uvicorn:
 
 ```bash
-uvicorn app.main:app --reload
+uvicorn security_scanner.app.main:app --reload
 ```
 
 The API runs at:
@@ -894,7 +894,7 @@ Before contributing or pushing changes:
 
 - Keep one clear package: `security_scanner`.
 - Keep CLI logic in `cli.py` and scanner orchestration in `runner.py`.
-- Keep API routes, schemas, and services inside `app/app/`.
+- Keep API routes, schemas, and services inside `security_scanner/app/`.
 - Add or update tests for behavior changes.
 - Use fake responses and monkeypatching instead of real network calls in unit
   tests.

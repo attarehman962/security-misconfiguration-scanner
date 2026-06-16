@@ -1,7 +1,16 @@
 # Runtime dependencies
+alembic
+bcrypt==4.0.1
 cryptography==48.0.0
+fastapi[standard]
 httpx==0.27.0
+passlib[bcrypt]==1.7.4
 playwright==1.60.0
+pydantic[email]
+pydantic-settings
+python-jose[cryptography]
+SQLAlchemy
+starlette<1.0
 
 # Development and test dependencies
 mypy==2.1.0

@@ -53,6 +53,9 @@ app/venv/
 app/*.db
 app/*.sqlite
 app/*.sqlite3
+app.db
+*.sqlite
+*.sqlite3
 app/media/
 app/uploads/
 
