@@ -1,0 +1,1 @@
+"""Scan job storage service."""

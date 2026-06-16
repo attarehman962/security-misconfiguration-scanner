@@ -6,14 +6,10 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
-from security_scanner import (
-    ScannerError,
-    configure_logging,
-    format_json,
-    format_table,
-    run_scan,
-    validate_url,
-)
+from security_scanner.core import ScannerError, configure_logging
+from security_scanner.reports import format_json, format_table
+from security_scanner.scanner import run_scan
+from security_scanner.utils import validate_url
 
 SUPPORTED_OUTPUT_FORMATS: tuple[str, str] = ("json", "table")
 logger = logging.getLogger(__name__)

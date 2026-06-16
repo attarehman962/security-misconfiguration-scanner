@@ -1,15 +1,12 @@
 """Public API for the security misconfiguration scanner package."""
 
-# ruff: noqa: I001
-# Public exports are ordered by dependency to avoid circular imports during
-# package initialization.
-
-from security_scanner.exceptions import (
+from security_scanner.core import (
     InvalidURLError,
     NetworkError,
-    SSLError,
-    ScanTimeoutError,
     ScannerError,
+    ScanTimeoutError,
+    SSLError,
+    configure_logging,
 )
 from security_scanner.models import (
     Finding,
@@ -18,26 +15,26 @@ from security_scanner.models import (
     Status,
     UrlScanResult,
 )
-from security_scanner.serializers import serialize_finding, serialize_scan_result
-from security_scanner.ssl_utils import (
+from security_scanner.reports import (
+    format_json,
+    format_table,
+    serialize_finding,
+    serialize_scan_result,
+)
+from security_scanner.scanner import FetchResult, fetch_url, run_full_scan, run_scan
+from security_scanner.scanner.checks import run_exposure_checks, run_header_checks
+from security_scanner.utils import (
+    ALLOWED_SCHEMES,
     DEFAULT_HTTPS_PORT,
+    DEFAULT_USER_AGENT,
     SslCertificateError,
+    UrlFetcher,
+    build_root_path_url,
     extract_hostname_and_port,
     get_ssl_expiry_date,
-)
-from security_scanner.url_utils import (
-    ALLOWED_SCHEMES,
-    build_root_path_url,
     normalize_url,
+    validate_url,
 )
-from security_scanner.url_fetcher import DEFAULT_USER_AGENT, UrlFetcher
-from security_scanner.http_client import FetchResult, fetch_url
-from security_scanner.formatters import format_json, format_table
-from security_scanner.logging_config import configure_logging
-from security_scanner.validators import validate_url
-from security_scanner.checks import run_exposure_checks
-from security_scanner.scanners import run_header_checks
-from security_scanner.runner import run_full_scan, run_scan
 
 __all__ = [
     "ALLOWED_SCHEMES",

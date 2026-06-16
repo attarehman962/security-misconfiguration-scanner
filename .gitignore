@@ -79,11 +79,11 @@ scan-result.json
 scan_results.json
 scan_results/
 reports/
-output/
-artifacts/
-tmp/
-temp/
-learn/
+/output/
+/artifacts/
+/tmp/
+/temp/
+/learn/
 
 # Local Codex/agent workspace files
 .codex/

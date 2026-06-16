@@ -6,10 +6,10 @@ import httpx
 from fastapi import FastAPI
 from pytest import LogCaptureFixture
 
-from security_scanner.app.api.dependencies import get_scan_service
-from security_scanner.app.main import create_app
-from security_scanner.app.schemas.scans import ScanResponse
-from security_scanner.app.services.exceptions import InvalidScanTargetError
+from security_scanner.api.v1.dependencies import get_scan_service
+from security_scanner.main import create_app
+from security_scanner.schemas import ScanResponse
+from security_scanner.services import InvalidScanTargetError
 
 
 class FakeScanService:
@@ -51,7 +51,7 @@ class MissingScanService(FakeScanService):
 
     def get_scan_by_id(self, scan_id: str) -> ScanResponse:
         """Simulate missing scan behavior."""
-        from security_scanner.app.services.exceptions import ScanNotFoundError
+        from security_scanner.services import ScanNotFoundError
 
         raise ScanNotFoundError(f"Scan '{scan_id}' was not found.")
 
@@ -190,7 +190,7 @@ def test_unhandled_exception_returns_clean_500_without_traceback(
     app = create_app()
     app.dependency_overrides[get_scan_service] = get_crashing_scan_service
 
-    with caplog.at_level(logging.ERROR, logger="security_scanner.app.core.exceptions"):
+    with caplog.at_level(logging.ERROR, logger="security_scanner.core.exceptions"):
         response = request(
             app,
             "POST",

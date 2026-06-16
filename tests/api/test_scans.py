@@ -2,7 +2,7 @@ import asyncio
 
 import httpx
 
-from security_scanner.app.main import app
+from security_scanner.main import app
 
 
 def request(method: str, path: str, **kwargs: object) -> httpx.Response:

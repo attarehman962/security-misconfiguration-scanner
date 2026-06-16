@@ -16,9 +16,11 @@ os.environ.setdefault(
 os.environ.setdefault("JWT_ALGORITHM", "HS256")
 os.environ.setdefault("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
 
-from security_scanner.app.db.base import Base  # noqa: E402
-from security_scanner.app.db.session import get_db  # noqa: E402
-from security_scanner.app.main import app  # noqa: E402
+from security_scanner.db import (
+    Base,  # noqa: E402
+    get_db,  # noqa: E402
+)
+from security_scanner.main import app  # noqa: E402
 
 TEST_DATABASE_URL = "sqlite+pysqlite:///:memory:"
 

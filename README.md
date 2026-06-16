@@ -139,7 +139,7 @@ fastapi dev app/main.py
 Or run it with Uvicorn:
 
 ```bash
-uvicorn security_scanner.app.main:app --reload
+uvicorn security_scanner.main:app --reload
 ```
 
 The API runs at:
@@ -169,29 +169,33 @@ security_scanner/
   __init__.py          Public package exports
   __main__.py          Entry point for python -m security_scanner
   cli.py               argparse CLI, output selection, file saving
-  runner.py            Main orchestration through run_full_scan()
-  validators.py        CLI URL validation
-  url_utils.py         Shared URL normalization and root-path helpers
-  url_fetcher.py       Main target fetcher using httpx.Client
-  http_client.py       Small safe fetch helper for extra exposure paths
-  ssl_utils.py         TLS certificate expiry helpers
-  scanners/
-    __init__.py        Scanner modules package marker
+  app/                 FastAPI application, DB models, migrations, API schemas
+  core/
+    exceptions.py      Project exception types
+    logging.py         Logging configuration
+    models.py          Severity, Status, Finding, ScanResult
+  scanning/
+    runner.py          Main orchestration through run_full_scan()
+    validators.py      CLI URL validation
+    url_utils.py       Shared URL normalization and root-path helpers
+    url_fetcher.py     Main target fetcher using httpx.Client
+    http_client.py     Small safe fetch helper for extra exposure paths
+    ssl_utils.py       TLS certificate expiry helpers
+  checks/
     security_headers.py
                       Security header checks
-  checks/
-    __init__.py        Checks package marker
     exposure.py        CORS, banner, directory, .env, and .git checks
-  models.py            Severity, Status, UrlScanResult, Finding, ScanResult
-  serializers.py       Dataclass/enum to JSON-safe dictionaries
-  formatters.py        JSON and terminal table formatting
-  exceptions.py        Project exception types
+  output/
+    serializers.py     Dataclass/enum to JSON-safe dictionaries
+    formatters.py      JSON and terminal table formatting
+  scraping/            Dynamic scraping support
 
 tests/
+  api/
+  checks/test_security_headers.py
   test_cli.py
   test_exposure_checks.py
   test_formatters.py
-  scanners/test_security_headers.py
   test_http_client.py
   test_logging_config.py
   test_main.py
@@ -203,11 +207,6 @@ tests/
   test_url_utils.py
   test_validators.py
   test_package_exports.py
-
-app/
-  README.md            API-specific setup and usage notes
-  requirements.txt     API dependencies
-  pytest.ini           API test configuration
   app/
     main.py            FastAPI application factory
     core/config.py     API settings
@@ -258,7 +257,7 @@ app/
    - reject malformed/unsupported URLs
    - build root-relative paths such as /.env
 
-6. security_scanner/runner.py
+6. security_scanner/scanning/runner.py
    Coordinates the scan.
    Calls UrlFetcher().fetch(url).
    Adds header findings.
@@ -267,30 +266,30 @@ app/
    Calculates total score.
    Returns ScanResult.
 
-7. security_scanner/url_fetcher.py
+7. security_scanner/scanning/url_fetcher.py
    Fetches the main target.
    Captures final URL, status code, headers, body, SSL expiry, and errors.
 
-8. security_scanner/scanners/security_headers.py
+8. security_scanner/checks/security_headers.py
    Checks common browser security headers.
 
 9. security_scanner/checks/exposure.py
    Checks CORS, server banners, X-Powered-By, directory listing, .env, and
    .git/config exposure.
 
-10. security_scanner/http_client.py
+10. security_scanner/scanning/http_client.py
    Performs safe small fetches for extra paths such as /.env and /.git/config.
 
-11. security_scanner/ssl_utils.py
+11. security_scanner/scanning/ssl_utils.py
     Reads TLS certificate expiry for HTTPS targets.
 
-12. security_scanner/models.py
+12. security_scanner/core/models.py
     Stores all results as typed dataclasses and enums.
 
-13. security_scanner/serializers.py
+13. security_scanner/output/serializers.py
     Converts dataclasses and enums into JSON-safe dictionaries.
 
-14. security_scanner/formatters.py
+14. security_scanner/output/formatters.py
     Formats the result as JSON or a terminal table.
 
 15. security_scanner/cli.py
@@ -302,16 +301,16 @@ Short flow:
 ```text
 __main__.py
 -> cli.py
--> validators.py
--> url_utils.py
--> runner.py
--> url_fetcher.py
--> scanners/security_headers.py
+-> scanning/validators.py
+-> scanning/url_utils.py
+-> scanning/runner.py
+-> scanning/url_fetcher.py
+-> checks/security_headers.py
 -> checks/exposure.py
--> ssl_utils.py
--> models.py
--> serializers.py
--> formatters.py
+-> scanning/ssl_utils.py
+-> core/models.py
+-> output/serializers.py
+-> output/formatters.py
 -> terminal or JSON file
 ```
 
@@ -395,7 +394,7 @@ Total score: 80
 `Severity` is an enum, not a raw string type.
 
 ```python
-from security_scanner.models import Severity
+from security_scanner.models.scan import Severity
 
 Severity.INFO
 Severity.LOW
@@ -411,7 +410,7 @@ JSON strings such as `"High"`.
 `Status` is an enum for whether a check passed or failed.
 
 ```python
-from security_scanner.models import Status
+from security_scanner.models.scan import Status
 
 Status.PASS
 Status.FAIL
@@ -424,7 +423,7 @@ Serializers convert it to plain JSON strings such as `"Pass"` and `"Fail"`.
 A `Finding` is one check result.
 
 ```python
-from security_scanner.models import Finding, Severity, Status
+from security_scanner.models.scan import Finding, Severity, Status
 
 finding = Finding(
     check_name="Content-Security-Policy",
@@ -486,7 +485,7 @@ It is used by exposure checks for paths such as:
 ```python
 from datetime import datetime, timezone
 
-from security_scanner.models import ScanResult
+from security_scanner.models.scan import ScanResult
 
 result = ScanResult(
     url="https://example.com",
@@ -500,7 +499,7 @@ result = ScanResult(
 
 ### Security Header Checks
 
-`security_scanner/scanners/security_headers.py` checks:
+`security_scanner/checks/security_headers.py` checks:
 
 - `Strict-Transport-Security`
 - `Content-Security-Policy`
@@ -516,7 +515,7 @@ Example:
 
 ```bash
 python - <<'PY'
-from security_scanner.scanners.security_headers import findings_to_json, run_header_checks
+from security_scanner.scanner.checks.security_headers import findings_to_json, run_header_checks
 
 headers = {
     "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
@@ -543,8 +542,8 @@ Example:
 
 ```bash
 python - <<'PY'
-from security_scanner.checks.exposure import check_weak_cors
-from security_scanner.models import Status
+from security_scanner.scanner.checks.exposure import check_weak_cors
+from security_scanner.models.scan import Status
 
 finding = check_weak_cors({"Access-Control-Allow-Origin": "*"})
 print(finding.status is Status.FAIL)
@@ -566,8 +565,8 @@ python - <<'PY'
 from collections.abc import Mapping
 from dataclasses import dataclass
 
-from security_scanner.checks.exposure import check_exposed_env
-from security_scanner.models import Status
+from security_scanner.scanner.checks.exposure import check_exposed_env
+from security_scanner.models.scan import Status
 
 
 @dataclass
@@ -718,15 +717,15 @@ This avoids confusion from duplicate package names such as
 Each module has one main responsibility:
 
 - `cli.py`: command-line interface only.
-- `validators.py`: input validation only.
-- `url_utils.py`: shared URL normalization and URL construction only.
-- `runner.py`: orchestration only.
-- `scanners/security_headers.py`: header checks only.
+- `scanning/validators.py`: input validation only.
+- `scanning/url_utils.py`: shared URL normalization and URL construction only.
+- `scanning/runner.py`: orchestration only.
+- `checks/security_headers.py`: header checks only.
 - `checks/exposure.py`: exposure checks only.
-- `url_fetcher.py` and `http_client.py`: HTTP fetching only.
-- `models.py`: data structures only.
-- `serializers.py`: conversion to JSON-safe data only.
-- `formatters.py`: output formatting only.
+- `scanning/url_fetcher.py` and `scanning/http_client.py`: HTTP fetching only.
+- `core/models.py`: data structures only.
+- `output/serializers.py`: conversion to JSON-safe data only.
+- `output/formatters.py`: output formatting only.
 
 This keeps the CLI from containing scanner logic and makes each part easier to
 test.
