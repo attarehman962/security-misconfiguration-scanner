@@ -20,6 +20,7 @@ dist/
 *.egg
 pip-wheel-metadata/
 wheelhouse/
+site/
 
 # Test, type-checker, and linter caches
 .pytest_cache/
@@ -43,21 +44,19 @@ htmlcov/
 .env
 .env.*
 !.env.example
+*.local
 
-# FastAPI app local files
-app/.env
-app/.env.*
-!app/.env.example
-app/.venv/
-app/venv/
-app/*.db
-app/*.sqlite
-app/*.sqlite3
+# Local databases
 app.db
+*.db
 *.sqlite
 *.sqlite3
-app/media/
-app/uploads/
+
+# Runtime media and uploads
+media/
+uploads/
+security_scanner/media/
+security_scanner/uploads/
 
 # IDE and OS files
 .vscode/
@@ -84,6 +83,11 @@ reports/
 /tmp/
 /temp/
 /learn/
+
+# Browser automation output
+.playwright/
+playwright-report/
+test-results/
 
 # Local Codex/agent workspace files
 .codex/
