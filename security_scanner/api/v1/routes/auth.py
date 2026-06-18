@@ -8,6 +8,7 @@ from security_scanner.core import create_access_token
 from security_scanner.db import get_db
 from security_scanner.models import User
 from security_scanner.repositories import (
+    DatabaseOperationError,
     DuplicateEmailError,
     authenticate_user,
     create_user,
@@ -34,6 +35,11 @@ async def register_user(
             status_code=status.HTTP_409_CONFLICT,
             detail="Email already registered.",
         ) from exc
+    except DatabaseOperationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Authentication service unavailable.",
+        ) from exc
 
 
 @router.post("/login", response_model=Token)
@@ -42,11 +48,17 @@ async def login_user(
     db: Annotated[Session, Depends(get_db)],
 ) -> Token:
     """Verify credentials and return a JWT access token."""
-    user = authenticate_user(
-        db=db,
-        email=credentials.email,
-        password=credentials.password,
-    )
+    try:
+        user = authenticate_user(
+            db=db,
+            email=credentials.email,
+            password=credentials.password,
+        )
+    except DatabaseOperationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Authentication service unavailable.",
+        ) from exc
 
     if user is None:
         raise HTTPException(

@@ -1,6 +1,7 @@
 """Repository exports."""
 
 from security_scanner.repositories.users import (
+    DatabaseOperationError,
     DuplicateEmailError,
     authenticate_user,
     create_user,
@@ -9,6 +10,7 @@ from security_scanner.repositories.users import (
 )
 
 __all__ = [
+    "DatabaseOperationError",
     "DuplicateEmailError",
     "authenticate_user",
     "create_user",

@@ -1,10 +1,12 @@
 from typing import Protocol
 
 import httpx
+from pytest import MonkeyPatch
 from sqlalchemy.orm import Session
 
+from security_scanner.core import create_access_token
 from security_scanner.models import User
-from security_scanner.repositories import get_user_by_email
+from security_scanner.repositories import DatabaseOperationError, get_user_by_email
 
 AUTH_PREFIX = "/api/v1/auth"
 
@@ -76,6 +78,29 @@ def test_register_duplicate_email(client: AuthTestClient) -> None:
     assert response.json()["detail"] == "Email already registered."
 
 
+def test_register_database_error_returns_503(
+    client: AuthTestClient,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Verify registration DB failures return a clean service error."""
+
+    def fail_create_user(*args: object, **kwargs: object) -> object:
+        raise DatabaseOperationError("Could not create user.")
+
+    monkeypatch.setattr(
+        "security_scanner.api.v1.routes.auth.create_user",
+        fail_create_user,
+    )
+
+    response = client.post(
+        f"{AUTH_PREFIX}/register",
+        json={"email": "atta@example.com", "password": "password123"},
+    )
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == "Authentication service unavailable."
+
+
 def test_login_success(client: AuthTestClient) -> None:
     """Verify login returns a bearer access token."""
     register_user(client)
@@ -104,6 +129,29 @@ def test_login_wrong_password(client: AuthTestClient) -> None:
     assert response.json()["detail"] == "Invalid email or password."
 
 
+def test_login_database_error_returns_503(
+    client: AuthTestClient,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Verify login DB failures return a clean service error."""
+
+    def fail_authenticate_user(*args: object, **kwargs: object) -> object:
+        raise DatabaseOperationError("Could not fetch user.")
+
+    monkeypatch.setattr(
+        "security_scanner.api.v1.routes.auth.authenticate_user",
+        fail_authenticate_user,
+    )
+
+    response = client.post(
+        f"{AUTH_PREFIX}/login",
+        json={"email": "atta@example.com", "password": "password123"},
+    )
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == "Authentication service unavailable."
+
+
 def test_protected_route_with_valid_token(client: AuthTestClient) -> None:
     """Verify a protected route works with a valid JWT."""
     register_user(client)
@@ -124,6 +172,30 @@ def test_protected_route_without_token(client: AuthTestClient) -> None:
     response = client.get(f"{AUTH_PREFIX}/me")
 
     assert response.status_code == 401
+
+
+def test_current_user_database_error_returns_503(
+    client: AuthTestClient,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Verify current-user lookup DB failures return a clean service error."""
+
+    def fail_get_user_by_id(*args: object, **kwargs: object) -> object:
+        raise DatabaseOperationError("Could not fetch user.")
+
+    monkeypatch.setattr(
+        "security_scanner.api.v1.dependencies.get_user_by_id",
+        fail_get_user_by_id,
+    )
+    token = create_access_token(subject="1")
+
+    response = client.get(
+        f"{AUTH_PREFIX}/me",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == "Authentication service unavailable."
 
 
 def test_invalid_token_is_rejected(client: AuthTestClient) -> None:

@@ -1,7 +1,11 @@
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class ConfigurationError(RuntimeError):
+    """Raised when application settings cannot be loaded safely."""
 
 
 class Settings(BaseSettings):
@@ -40,4 +44,10 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     """Return cached application settings."""
-    return Settings()
+    try:
+        return Settings()
+    except ValidationError as exc:
+        raise ConfigurationError(
+            "Application configuration is invalid. Check required environment "
+            "variables and settings values."
+        ) from exc

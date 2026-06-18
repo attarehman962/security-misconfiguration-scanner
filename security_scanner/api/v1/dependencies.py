@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from security_scanner.core import TokenDecodeError, decode_access_token
 from security_scanner.db import get_db
 from security_scanner.models import User
-from security_scanner.repositories import get_user_by_id
+from security_scanner.repositories import DatabaseOperationError, get_user_by_id
 from security_scanner.scanner import SecurityMisconfigurationScanner
 from security_scanner.services import ScanService
 from security_scanner.services.scan_job_store import InMemoryScanJobStore
@@ -49,7 +49,13 @@ async def get_current_user(
     except (TokenDecodeError, ValueError) as exc:
         raise credentials_exception from exc
 
-    user = get_user_by_id(db, user_id)
+    try:
+        user = get_user_by_id(db, user_id)
+    except DatabaseOperationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Authentication service unavailable.",
+        ) from exc
 
     if user is None:
         raise credentials_exception

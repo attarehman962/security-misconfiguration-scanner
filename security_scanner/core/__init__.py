@@ -1,6 +1,6 @@
 """Core configuration, security, exceptions, and logging helpers."""
 
-from security_scanner.core.config import Settings, get_settings
+from security_scanner.core.config import ConfigurationError, Settings, get_settings
 from security_scanner.core.exceptions import (
     InvalidURLError,
     NetworkError,
@@ -24,6 +24,7 @@ from security_scanner.core.security import (
 
 __all__ = [
     "LOG_FORMAT",
+    "ConfigurationError",
     "InvalidURLError",
     "NetworkError",
     "SSLError",
