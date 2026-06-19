@@ -55,6 +55,13 @@ class RequestErrorClient(SuccessfulClient):
         raise httpx.RequestError(f"network error: {url}")
 
 
+class InvalidUrlClient(SuccessfulClient):
+    """Fake client that simulates httpx URL validation failure."""
+
+    def get(self, url: str) -> FakeResponse:
+        raise httpx.InvalidURL(f"invalid URL: {url}")
+
+
 def test_url_fetcher_fetch_returns_success_result(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -134,3 +141,29 @@ def test_url_fetcher_combines_request_and_ssl_errors(
     assert result.error is not None
     assert "network error" in result.error
     assert "SSL check: bad certificate" in result.error
+
+
+def test_url_fetcher_fetch_returns_invalid_url_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify httpx.InvalidURL becomes a structured fetch error."""
+
+    def fake_get_ssl_expiry_date(url: str) -> None:
+        return None
+
+    monkeypatch.setattr(
+        url_fetcher,
+        "get_ssl_expiry_date",
+        fake_get_ssl_expiry_date,
+    )
+    monkeypatch.setattr(
+        "security_scanner.utils.url_fetcher.httpx.Client",
+        InvalidUrlClient,
+    )
+
+    result = UrlFetcher().fetch("https://example.com")
+
+    assert result.status_code is None
+    assert result.headers == {}
+    assert result.error is not None
+    assert "Invalid URL" in result.error

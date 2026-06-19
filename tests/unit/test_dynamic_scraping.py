@@ -10,6 +10,7 @@ import pytest
 
 from security_scanner.reports import save_items_csv, save_result_json
 from security_scanner.scraper import (
+    DynamicPageScraper,
     ScrapeConfig,
     ScrapedItem,
     ScrapeResult,
@@ -84,6 +85,32 @@ def test_normalize_source_url_keeps_https_url() -> None:
     normalized_url = normalize_source_url(url)
 
     assert normalized_url == url
+
+
+def test_scraper_returns_failed_result_when_source_normalization_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify source normalization errors do not escape scraper.scrape()."""
+
+    def fail_normalize_source_url(raw_source: str) -> str:
+        raise ValueError("bad source")
+
+    monkeypatch.setattr(
+        "security_scanner.scraper.playwright_scraper.normalize_source_url",
+        fail_normalize_source_url,
+    )
+    config = ScrapeConfig(
+        source_url="bad source",
+        item_selector=".item",
+        title_selector=".title",
+    )
+
+    result = asyncio.run(DynamicPageScraper().scrape(config))
+
+    assert result.success is False
+    assert result.items == []
+    assert result.source_url == "bad source"
+    assert result.error_message == "Could not normalize source URL: bad source"
 
 
 def test_extract_item_from_card_returns_structured_item() -> None:

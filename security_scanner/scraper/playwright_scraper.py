@@ -143,7 +143,15 @@ class DynamicPageScraper:
 
     async def scrape(self, config: ScrapeConfig) -> ScrapeResult:
         """Scrape a dynamic page and return a structured result."""
-        normalized_url = normalize_source_url(config.source_url)
+        try:
+            normalized_url = normalize_source_url(config.source_url)
+        except (OSError, RuntimeError, ValueError) as error:
+            return ScrapeResult(
+                source_url=config.source_url,
+                success=False,
+                items=[],
+                error_message=f"Could not normalize source URL: {error}",
+            )
 
         async with async_playwright() as playwright:
             browser: Browser | None = None

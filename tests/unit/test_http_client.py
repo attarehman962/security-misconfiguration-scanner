@@ -2,6 +2,8 @@
 
 from collections.abc import Mapping
 
+import httpx
+import pytest
 from pytest import MonkeyPatch
 
 from security_scanner import FetchResult, fetch_url
@@ -42,3 +44,22 @@ def test_fetch_url_returns_status_headers_and_body(
     assert result.status_code == 200
     assert result.headers == {"Content-Type": "text/plain"}
     assert result.body == "hello"
+
+
+def test_fetch_url_wraps_invalid_url_as_request_error(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Verify invalid httpx URLs use the same error family as request failures."""
+
+    def fake_get(
+        url: str,
+        timeout: int,
+        follow_redirects: bool,
+        headers: Mapping[str, str],
+    ) -> FakeHttpxResponse:
+        raise httpx.InvalidURL("bad URL")
+
+    monkeypatch.setattr("security_scanner.scanner.http_client.httpx.get", fake_get)
+
+    with pytest.raises(httpx.RequestError, match="Invalid URL"):
+        fetch_url("https://example.com/%zz", timeout=10)

@@ -119,6 +119,21 @@ class UrlFetcher:
                 ssl_expiry_utc=ssl_expiry,
                 error=f"Too many redirects: {exc}",
             )
+        except httpx.InvalidURL as exc:
+            logger.error(
+                "HTTP request used invalid URL url=%s error=%s",
+                normalized_url,
+                exc,
+            )
+            return UrlScanResult(
+                input_url=url,
+                final_url=None,
+                status_code=None,
+                headers={},
+                body="",
+                ssl_expiry_utc=ssl_expiry,
+                error=f"Invalid URL: {exc}",
+            )
         except httpx.RequestError as exc:
             combined_error = str(exc)
             logger.error("HTTP request failed url=%s error=%s", normalized_url, exc)

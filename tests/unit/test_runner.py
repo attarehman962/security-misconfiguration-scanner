@@ -213,6 +213,92 @@ def test_run_full_scan_bridges_fetcher_headers_ssl_and_models(
     ]
 
 
+def test_run_full_scan_records_header_check_exception(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Verify header check crashes become findings and scanning continues."""
+
+    def failing_run_header_checks(headers: dict[str, str]) -> list[Finding]:
+        raise RuntimeError("header parser broke")
+
+    def fake_get_ssl_expiry_date(url: str) -> datetime:
+        return datetime.now(UTC) + timedelta(days=30)
+
+    monkeypatch.setattr(runner, "UrlFetcher", SuccessfulFetcher)
+    monkeypatch.setattr(runner, "run_header_checks", failing_run_header_checks)
+    monkeypatch.setattr(
+        runner,
+        "run_exposure_checks",
+        fake_run_exposure_checks,
+    )
+    monkeypatch.setattr(
+        runner,
+        "get_ssl_expiry_date",
+        fake_get_ssl_expiry_date,
+    )
+
+    result = runner.run_full_scan("https://example.com")
+
+    assert result.findings[0].check_name == "security_headers"
+    assert result.findings[0].status is Status.FAIL
+    assert result.findings[0].severity is Severity.INFO
+    assert "header parser broke" in result.findings[0].description
+    assert result.findings[-1].check_name == "ssl"
+
+
+def test_run_full_scan_records_exposure_check_exception(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Verify exposure check crashes become findings and scanning continues."""
+
+    def fake_run_header_checks(headers: dict[str, str]) -> list[Finding]:
+        return [
+            Finding(
+                check_name="header-check",
+                status=Status.PASS,
+                severity=Severity.LOW,
+                description="header check passed",
+                remediation="No action required.",
+            )
+        ]
+
+    def failing_run_exposure_checks(
+        base_url: str,
+        base_response: object,
+        fetcher: object,
+        timeout: int = 10,
+        is_public_api: bool = False,
+    ) -> list[Finding]:
+        raise RuntimeError("exposure probe broke")
+
+    def fake_get_ssl_expiry_date(url: str) -> datetime:
+        return datetime.now(UTC) + timedelta(days=30)
+
+    monkeypatch.setattr(runner, "UrlFetcher", SuccessfulFetcher)
+    monkeypatch.setattr(runner, "run_header_checks", fake_run_header_checks)
+    monkeypatch.setattr(
+        runner,
+        "run_exposure_checks",
+        failing_run_exposure_checks,
+    )
+    monkeypatch.setattr(
+        runner,
+        "get_ssl_expiry_date",
+        fake_get_ssl_expiry_date,
+    )
+
+    result = runner.run_full_scan("https://example.com")
+
+    assert [finding.check_name for finding in result.findings] == [
+        "header-check",
+        "exposure_checks",
+        "ssl",
+    ]
+    assert result.findings[1].status is Status.FAIL
+    assert result.findings[1].severity is Severity.INFO
+    assert "exposure probe broke" in result.findings[1].description
+
+
 def test_run_full_scan_returns_fetch_error_result(
     monkeypatch: MonkeyPatch,
 ) -> None:

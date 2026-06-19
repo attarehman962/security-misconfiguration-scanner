@@ -96,7 +96,16 @@ def run_full_scan(url: str) -> ScanResult:
         )
 
     # Header checks only need response headers from the main request.
-    findings.extend(run_header_checks(fetch_result.headers))
+    try:
+        findings.extend(run_header_checks(fetch_result.headers))
+    except Exception as error:
+        logger.exception("Header checks failed url=%s", url)
+        findings.append(
+            _build_check_error_finding(
+                check_name="security_headers",
+                description=f"Security header checks failed: {error}",
+            )
+        )
     logger.info("Header checks completed url=%s findings=%s", url, len(findings))
     if fetch_result.status_code is None:
         logger.error("Successful fetch result missing status code url=%s", url)
@@ -110,15 +119,24 @@ def run_full_scan(url: str) -> ScanResult:
         headers=fetch_result.headers,
         body=fetch_result.body,
     )
-    findings.extend(
-        run_exposure_checks(
-            base_url=url,
-            base_response=base_response,
-            fetcher=fetch_url,
-            timeout=10,
-            is_public_api=False,
+    try:
+        findings.extend(
+            run_exposure_checks(
+                base_url=url,
+                base_response=base_response,
+                fetcher=fetch_url,
+                timeout=10,
+                is_public_api=False,
+            )
         )
-    )
+    except Exception as error:
+        logger.exception("Exposure checks failed url=%s", url)
+        findings.append(
+            _build_check_error_finding(
+                check_name="exposure_checks",
+                description=f"Exposure checks failed: {error}",
+            )
+        )
     logger.info("Exposure checks completed url=%s findings=%s", url, len(findings))
 
     # SSL/TLS is represented as a normal Finding so scoring/output stays simple.
@@ -139,6 +157,20 @@ def run_full_scan(url: str) -> ScanResult:
         timestamp=datetime.now(UTC),
         findings=findings,
         total_score=total_score,
+    )
+
+
+def _build_check_error_finding(check_name: str, description: str) -> Finding:
+    """Build a scanner finding for an unexpected check failure."""
+    return Finding(
+        check_name=check_name,
+        status=Status.FAIL,
+        severity=Severity.INFO,
+        description=description,
+        remediation=(
+            "Review scanner logs for the failed check and retry after the "
+            "underlying issue is resolved."
+        ),
     )
 
 

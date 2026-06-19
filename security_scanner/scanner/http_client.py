@@ -21,12 +21,15 @@ def fetch_url(url: str, timeout: int) -> FetchResult:
     """Fetch a URL and return the response data needed by checks."""
     # This helper is intentionally small and predictable. Exposure checks use it
     # for extra paths such as /.env without depending on UrlFetcher.
-    response = httpx.get(
-        url,
-        timeout=timeout,
-        follow_redirects=True,
-        headers={"User-Agent": DEFAULT_USER_AGENT},
-    )
+    try:
+        response = httpx.get(
+            url,
+            timeout=timeout,
+            follow_redirects=True,
+            headers={"User-Agent": DEFAULT_USER_AGENT},
+        )
+    except httpx.InvalidURL as exc:
+        raise httpx.RequestError(f"Invalid URL: {exc}") from exc
 
     return FetchResult(
         url=str(response.url),
