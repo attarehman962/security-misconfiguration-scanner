@@ -1,18 +1,18 @@
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from threading import Lock
 from uuid import uuid4
 
 from security_scanner.models.scan import ScanResult
 
 
-class ScanStatus(str, Enum):
+class ScanStatus(StrEnum):
     PENDING = "pending"
     RUNNING = "running"
     COMPLETE = "complete"
     FAILED = "failed"
-    
-    
+
+
 @dataclass
 class ScanJob:
     scan_id: str

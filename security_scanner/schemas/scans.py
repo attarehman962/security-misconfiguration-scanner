@@ -3,7 +3,22 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
-from security_scanner.models import ScanResult
+from security_scanner.models import ScanResult, Severity, Status
+
+FindingStatus = Literal["pass", "fail", "error"]
+FindingSeverity = Literal["critical", "high", "medium", "low", "info"]
+
+STATUS_RESPONSE_BY_MODEL: dict[Status, FindingStatus] = {
+    Status.PASS: "pass",
+    Status.FAIL: "fail",
+}
+
+SEVERITY_RESPONSE_BY_MODEL: dict[Severity, FindingSeverity] = {
+    Severity.HIGH: "high",
+    Severity.MEDIUM: "medium",
+    Severity.LOW: "low",
+    Severity.INFO: "info",
+}
 
 
 class ScanCreateRequest(BaseModel):
@@ -31,11 +46,11 @@ class FindingResponse(BaseModel):
         ...,
         description="Name of the security check that produced this finding.",
     )
-    status: Literal["pass", "fail", "error"] = Field(
+    status: FindingStatus = Field(
         ...,
         description="Execution status of the check.",
     )
-    severity: Literal["critical", "high", "medium", "low", "info"] = Field(
+    severity: FindingSeverity = Field(
         ...,
         description="Security severity of the finding.",
     )
@@ -160,8 +175,8 @@ def scan_result_to_response(scan_result: ScanResult) -> ScanResultResponse:
         findings=[
             FindingResponse(
                 check_name=finding.check_name,
-                status=finding.status.value.lower(),
-                severity=finding.severity.value.lower(),
+                status=STATUS_RESPONSE_BY_MODEL[finding.status],
+                severity=SEVERITY_RESPONSE_BY_MODEL[finding.severity],
                 description=finding.description,
                 remediation=finding.remediation,
             )

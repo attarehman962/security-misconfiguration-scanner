@@ -13,6 +13,12 @@ from security_scanner.schemas.scans import (
     ScanStatusResponse,
     scan_result_to_response,
 )
+from security_scanner.schemas.scrape import (
+    ScrapedItemResponse,
+    ScrapeRequest,
+    ScrapeResponse,
+    scrape_result_to_response,
+)
 
 __all__ = [
     "ErrorResponse",
@@ -25,9 +31,13 @@ __all__ = [
     "ScanResultResponse",
     "ScanStartRequest",
     "ScanStatusResponse",
+    "ScrapedItemResponse",
+    "ScrapeRequest",
+    "ScrapeResponse",
     "Token",
     "UserCreate",
     "UserLogin",
     "UserPublic",
     "scan_result_to_response",
+    "scrape_result_to_response",
 ]
