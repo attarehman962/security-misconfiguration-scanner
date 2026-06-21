@@ -3,13 +3,32 @@ from datetime import UTC, datetime
 import pytest
 from pydantic import ValidationError
 
-from security_scanner.schemas import ScrapeRequest, scrape_result_to_response
+from security_scanner.schemas import (
+    ScrapeRequest,
+    StructuredScrapeRequest,
+    scrape_result_to_response,
+)
 from security_scanner.scraper import ScrapedItem, ScrapeResult
 
 
 def test_scrape_request_accepts_required_and_optional_selectors() -> None:
-    """Verify scrape request only requires the selectors the scraper needs."""
+    """Verify public scrape requests accept generic URL scrape options."""
     request = ScrapeRequest.model_validate(
+        {
+            "url": "https://example.com/products",
+            "css_selector": "a.product-link",
+            "use_javascript": False,
+        }
+    )
+
+    assert str(request.url) == "https://example.com/products"
+    assert request.css_selector == "a.product-link"
+    assert request.use_javascript is False
+
+
+def test_structured_scrape_request_accepts_required_and_optional_selectors() -> None:
+    """Verify scrape request only requires the selectors the scraper needs."""
+    request = StructuredScrapeRequest.model_validate(
         {
             "source_url": "https://example.com/products",
             "item_selector": ".product-card",
@@ -31,10 +50,8 @@ def test_scrape_request_rejects_unknown_fields() -> None:
     with pytest.raises(ValidationError):
         ScrapeRequest.model_validate(
             {
-                "source_url": "https://example.com/products",
-                "item_selector": ".product-card",
-                "title_selector": ".product-title",
-                "use_javascript": False,
+                "url": "https://example.com/products",
+                "unknown_option": False,
             }
         )
 

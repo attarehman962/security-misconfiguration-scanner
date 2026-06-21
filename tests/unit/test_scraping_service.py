@@ -4,7 +4,7 @@ import asyncio
 
 import httpx
 
-from security_scanner.schemas import ScrapeRequest
+from security_scanner.schemas import StructuredScrapeRequest
 from security_scanner.scraper import ScrapeConfig, ScrapeResult
 from security_scanner.services import ScrapingService
 
@@ -141,9 +141,9 @@ def build_scrape_request(
     *,
     title_selector: str = ".product-title",
     max_items: int = 50,
-) -> ScrapeRequest:
+) -> StructuredScrapeRequest:
     """Build a valid scrape request for service tests."""
-    return ScrapeRequest.model_validate(
+    return StructuredScrapeRequest.model_validate(
         {
             "source_url": "https://example.com/products",
             "item_selector": ".product-card",

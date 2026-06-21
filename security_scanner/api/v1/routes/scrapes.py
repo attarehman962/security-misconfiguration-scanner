@@ -1,21 +1,55 @@
-from typing import Annotated
+from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+import logging
 
-from security_scanner.api.v1.dependencies import get_current_user
-from security_scanner.models import User
+from fastapi import APIRouter, Depends, HTTPException, status
 
-router = APIRouter(prefix="/scrape", tags=["scrape"])
+from security_scanner.schemas.scrape import (
+    ScrapeRequest,
+    ScrapeResponse,
+    scrape_result_to_response,
+)
+from security_scanner.services.scraping_service import ScrapingError, ScrapingService
+
+logger = logging.getLogger(__name__)
+router = APIRouter(prefix="/scrape", tags=["scraping"])
 
 
-@router.post("")
-async def run_scrape(
-    target_url: str,
-    current_user: Annotated[User, Depends(get_current_user)],
-) -> dict[str, object]:
-    """Run a scrape job for the authenticated user."""
-    return {
-        "requested_by": current_user.email,
-        "target_url": target_url,
-        "message": "Scrape route is protected.",
-    }
+def get_scraping_service() -> ScrapingService:
+    """Dependency factory - returns a fresh ScrapingService per request."""
+    return ScrapingService()
+
+
+@router.post(
+    "/",
+    response_model=ScrapeResponse,
+    summary="Scrape a URL",
+    description="Accepts a URL and returns structured scraped content.",
+    status_code=status.HTTP_200_OK,
+)
+async def scrape_url(
+    request: ScrapeRequest,
+    service: ScrapingService = Depends(get_scraping_service),
+) -> ScrapeResponse:
+    """
+    Scrape the target URL and return structured results.
+
+    Returns a 200 with an error field in the body for recoverable failures
+    (timeout, connection error). Returns 500 only for unexpected crashes.
+    """
+    logger.info("Scrape request received", extra={"url": str(request.url)})
+
+    try:
+        scrape_result = await service.scrape_url(
+            url=str(request.url),
+            css_selector=request.css_selector,
+            use_javascript=request.use_javascript,
+        )
+    except ScrapingError as exc:
+        logger.error("Scraping infrastructure failure", extra={"error": str(exc)})
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Scraping failed due to an internal error. Try again.",
+        ) from exc
+
+    return scrape_result_to_response(scrape_result)

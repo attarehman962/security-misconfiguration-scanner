@@ -12,7 +12,7 @@ from playwright.async_api import Error as PlaywrightError
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 from playwright.async_api import async_playwright
 
-from security_scanner.schemas.scrape import ScrapeRequest
+from security_scanner.schemas.scrape import StructuredScrapeRequest
 from security_scanner.scraper import (
     DynamicPageScraper,
     ScrapeConfig,
@@ -198,7 +198,7 @@ class ScrapingService:
 
     async def scrape(
         self,
-        request: ScrapeRequest,
+        request: StructuredScrapeRequest,
         *,
         use_javascript: bool = True,
         timeout_seconds: int = DEFAULT_TIMEOUT_SECONDS,
@@ -226,11 +226,11 @@ class ScrapingService:
 
     async def scrape_url(
         self,
-        max_items: int,
         url: str,
         css_selector: str | None = None,
         use_javascript: bool = False,
         timeout: int = DEFAULT_TIMEOUT_SECONDS,
+        max_items: int = DEFAULT_MAX_ITEMS,
     ) -> ScrapeResult:
         """Scrape readable text and links from a URL.
 
@@ -244,12 +244,14 @@ class ScrapingService:
                 url=url,
                 css_selector=css_selector,
                 timeout_seconds=timeout,
+                max_items=max_items,
             )
 
         return await self._scrape_static_elements(
             url=url,
             css_selector=css_selector,
             timeout_seconds=timeout,
+            max_items=max_items,
         )
 
     async def _scrape_static(
@@ -334,6 +336,7 @@ class ScrapingService:
         url: str,
         css_selector: str | None,
         timeout_seconds: int,
+        max_items: int,
     ) -> ScrapeResult:
         """Scrape generic readable nodes from static HTML."""
         selector = css_selector or DEFAULT_GENERIC_SELECTOR
@@ -343,7 +346,7 @@ class ScrapingService:
                 url=url,
                 timeout_seconds=timeout_seconds,
             )
-            nodes = select_nodes(root, selector)
+            nodes = select_nodes(root, selector)[:max_items]
             items = [
                 item
                 for item in (
@@ -378,6 +381,7 @@ class ScrapingService:
         url: str,
         css_selector: str | None,
         timeout_seconds: int,
+        max_items: int,
     ) -> ScrapeResult:
         """Scrape generic readable nodes from a JavaScript-rendered page."""
         selector = css_selector or DEFAULT_GENERIC_SELECTOR
@@ -400,7 +404,7 @@ class ScrapingService:
                     locators = await page.locator(selector).all()
                     items: list[ScrapedItem] = []
 
-                    for locator in locators:
+                    for locator in locators[:max_items]:
                         text = (await locator.inner_text(timeout=timeout_ms)).strip()
 
                         if not text:

@@ -1,11 +1,11 @@
 from fastapi import FastAPI
 
 from security_scanner.api.v1.routes import (
-    auth_router,
-    health_router,
-    reports_router,
-    scans_router,
-    scrapes_router,
+    auth,
+    health,
+    reports,
+    scans,
+    scrapes,
 )
 from security_scanner.core import get_settings, register_exception_handlers
 
@@ -20,11 +20,11 @@ def create_app() -> FastAPI:
     )
 
     register_exception_handlers(app)
-    app.include_router(health_router, prefix="/api/v1")
-    app.include_router(scans_router, prefix="/api/v1")
-    app.include_router(scrapes_router, prefix="/api/v1")
-    app.include_router(reports_router, prefix="/api/v1")
-    app.include_router(auth_router, prefix="/api/v1")
+    app.include_router(health.router, prefix="/api/v1")
+    app.include_router(scans.router, prefix="/api/v1")
+    app.include_router(scrapes.router, prefix="/api/v1")
+    app.include_router(reports.router, prefix="/api/v1")
+    app.include_router(auth.router, prefix="/api/v1")
 
     return app
 

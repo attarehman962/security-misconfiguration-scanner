@@ -17,6 +17,7 @@ from security_scanner.schemas.scrape import (
     ScrapedItemResponse,
     ScrapeRequest,
     ScrapeResponse,
+    StructuredScrapeRequest,
     scrape_result_to_response,
 )
 
@@ -34,6 +35,7 @@ __all__ = [
     "ScrapedItemResponse",
     "ScrapeRequest",
     "ScrapeResponse",
+    "StructuredScrapeRequest",
     "Token",
     "UserCreate",
     "UserLogin",

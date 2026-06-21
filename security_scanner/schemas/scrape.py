@@ -6,6 +6,25 @@ from security_scanner.scraper import ScrapeResult
 
 
 class ScrapeRequest(BaseModel):
+    """Request body for the public URL scraping endpoint."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    url: HttpUrl = Field(..., description="Page URL to scrape.")
+    css_selector: str | None = Field(
+        default=None,
+        min_length=1,
+        description="Optional CSS selector for readable page elements.",
+    )
+    use_javascript: bool = Field(
+        default=False,
+        description="Whether to render the page with JavaScript before scraping.",
+    )
+
+
+class StructuredScrapeRequest(BaseModel):
+    """Detailed scraping request for item/card extraction."""
+
     model_config = ConfigDict(extra="forbid")
 
     source_url: HttpUrl = Field(..., description="Page URL to scrape.")
