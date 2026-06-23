@@ -1,4 +1,4 @@
-from collections.abc import AsyncGenerator
+from typing import Generator
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -20,7 +20,7 @@ engine = create_engine(
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-async def get_db() -> AsyncGenerator[Session]:
+def get_db() -> Generator[Session, None, None]:
     """Provide a database session for request handlers."""
     db = SessionLocal()
     try:
