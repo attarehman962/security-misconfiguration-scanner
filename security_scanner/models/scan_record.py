@@ -36,13 +36,14 @@ class ScanRecord(Base):
     url: Mapped[str] = mapped_column(String(2048), nullable=False)
 
     status: Mapped[ScanRecordStatus] = mapped_column(
-        Enum(
-            ScanRecordStatus,
-            name="scanrecordstatus",
-            native_enum=True,
-        ),
-        nullable=False,
-        server_default="pending",
+    Enum(
+        ScanRecordStatus,
+        name="scanrecordstatus",
+        native_enum=True,
+        values_callable=lambda enum_cls: [e.value for e in enum_cls],
+    ),
+         nullable=False,
+        default=ScanRecordStatus.PENDING,
     )
 
     created_at: Mapped[datetime] = mapped_column(
