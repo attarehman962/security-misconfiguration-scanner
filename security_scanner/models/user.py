@@ -1,9 +1,13 @@
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, String, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from security_scanner.db import Base
+
+if TYPE_CHECKING:
+    from security_scanner.models.scraped_job import ScrapedJob
 
 
 class User(Base):
@@ -32,4 +36,10 @@ class User(Base):
         DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
+    )
+    scraped_jobs: Mapped[list["ScrapedJob"]] = relationship(
+        "ScrapedJob",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )

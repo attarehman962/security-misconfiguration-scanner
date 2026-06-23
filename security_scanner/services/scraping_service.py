@@ -59,6 +59,7 @@ class DynamicScraperLike(Protocol):
 
     async def scrape(self, config: ScrapeConfig) -> ScrapeResult:
         """Scrape a dynamic page with the given config."""
+        ...
 
 
 @dataclass

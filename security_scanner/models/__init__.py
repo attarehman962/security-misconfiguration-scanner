@@ -8,6 +8,12 @@ from security_scanner.models.scan import (
     UrlScanResult,
 )
 from security_scanner.models.user import User
+from security_scanner.models.finding import Finding
+from security_scanner.models.scraped_job import ScrapedJob
+from security_scanner.models.scan_record import ScanRecordStatus,ScanRecord
+
+
+
 
 __all__ = [
     "Finding",
@@ -16,4 +22,8 @@ __all__ = [
     "Status",
     "UrlScanResult",
     "User",
+    "Finding",
+    "ScrapedJob",
+    "ScanRecordStatus",
+    "ScanRecord",
 ]
