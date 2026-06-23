@@ -6,10 +6,11 @@ from sqlalchemy import String, Text, ForeignKey, Enum as SqlEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from security_scanner.db import Base
-from security_scanner.models import Severity, Status
+from security_scanner.models.scan import Severity, Status
 
 if TYPE_CHECKING:
     from security_scanner.models.scan_record import ScanRecord
+
 
 class Finding(Base):
     """Represents the result of one security check during a scan."""
