@@ -92,3 +92,7 @@ test-results/
 # Local Codex/agent workspace files
 .codex/
 .agents/
+
+# Alembic migration files (keep folder structure, ignore generated migrations)
+security_scanner/db/migrations/versions/*
+!security_scanner/db/migrations/versions/.gitkeep
