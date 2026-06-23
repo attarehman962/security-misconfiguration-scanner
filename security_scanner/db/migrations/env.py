@@ -5,10 +5,6 @@ from sqlalchemy import engine_from_config, pool
 
 from security_scanner.core import get_settings
 from security_scanner.db import Base
-from security_scanner.models import User 
-from security_scanner.models import ScanRecord
-from security_scanner.models import Finding
-from security_scanner.models import ScrapedJob# noqa: F401
 
 config = context.config
 
