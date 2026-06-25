@@ -124,7 +124,7 @@ class ScanAcceptedResponse(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    scan_id: str = Field(..., description="Stable scan identifier.")
+    scan_id: int = Field(..., description="Stable scan identifier.")
     status: str = Field(..., description="Current scan job status.")
     status_url: str = Field(..., description="Path used to poll scan status.")
 
@@ -153,7 +153,7 @@ class ScanStatusResponse(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    scan_id: str = Field(..., description="Stable scan identifier.")
+    scan_id: int = Field(..., description="Stable scan identifier.")
     url: str = Field(..., description="Submitted scan URL.")
     status: str = Field(..., description="Current scan job status.")
     error_message: str | None = Field(
