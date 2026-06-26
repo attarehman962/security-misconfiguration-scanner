@@ -16,11 +16,13 @@ os.environ.setdefault(
 os.environ.setdefault("JWT_ALGORITHM", "HS256")
 os.environ.setdefault("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
 
+from security_scanner.core import create_access_token  # noqa: E402
 from security_scanner.db import (
     Base,  # noqa: E402
     get_db,  # noqa: E402
 )
 from security_scanner.main import app  # noqa: E402
+from security_scanner.models import User  # noqa: E402
 
 TEST_DATABASE_URL = "sqlite+pysqlite:///:memory:"
 
@@ -86,3 +88,36 @@ def client(db_session: Session) -> Generator[ASGISyncClient]:
     yield ASGISyncClient(app)
 
     app.dependency_overrides.clear()
+
+
+@pytest.fixture()
+def test_user(db_session: Session) -> User:
+    """Create the default authenticated user for database-backed tests."""
+    user = User(
+        email="test@example.com",
+        hashed_password="not-used-by-token-tests",
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    return user
+
+
+@pytest.fixture()
+def other_test_user(db_session: Session) -> User:
+    """Create a second user for isolation tests."""
+    user = User(
+        email="other@example.com",
+        hashed_password="not-used-by-token-tests",
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    return user
+
+
+@pytest.fixture()
+def auth_headers(test_user: User) -> dict[str, str]:
+    """Build bearer-token headers for endpoints protected by get_current_user."""
+    token = create_access_token(subject=str(test_user.id))
+    return {"Authorization": f"Bearer {token}"}

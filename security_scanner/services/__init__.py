@@ -7,14 +7,27 @@ from security_scanner.services.exceptions import (
 )
 from security_scanner.services.scan_job_store import InMemoryScanJobStore
 from security_scanner.services.scans import ScanService
-from security_scanner.services.scraping_service import ScrapingError, ScrapingService
+from security_scanner.services.scraping_service import (
+    ScrapedJobQueryError,
+    ScrapedJobSaveError,
+    ScrapingError,
+    ScrapingService,
+    list_jobs,
+    save_jobs,
+    stream_jobs_csv,
+)
 
 __all__ = [
     "InvalidScanTargetError",
     "ScanNotFoundError",
     "ScanService",
     "ScanServiceError",
+    "ScrapedJobQueryError",
+    "ScrapedJobSaveError",
     "ScrapingError",
     "ScrapingService",
-    "InMemoryScanJobStore"
+    "InMemoryScanJobStore",
+    "list_jobs",
+    "save_jobs",
+    "stream_jobs_csv",
 ]

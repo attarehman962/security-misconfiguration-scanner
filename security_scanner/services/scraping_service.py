@@ -1,7 +1,12 @@
+"""Scraping services for live extraction and persisted scraped results."""
+
 from __future__ import annotations
 
+import csv
+import io
 import logging
 import re
+from collections.abc import Generator
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
 from typing import Protocol
@@ -11,8 +16,12 @@ import httpx
 from playwright.async_api import Error as PlaywrightError
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 from playwright.async_api import async_playwright
+from sqlalchemy.orm import Session
 
+from security_scanner.crud.scraped_job import create_scraped_job, get_scraped_jobs
+from security_scanner.models.scraped_job import ScrapedJob
 from security_scanner.schemas.scrape import StructuredScrapeRequest
+from security_scanner.schemas.scraped_job import ScrapedJobCreate, ScrapedJobOut
 from security_scanner.scraper import (
     DynamicPageScraper,
     ScrapeConfig,
@@ -45,6 +54,16 @@ SIMPLE_SELECTOR_PATTERN = re.compile(
     r"(?P<tokens>(?:[.#][a-zA-Z_][a-zA-Z0-9_-]*)*)$"
 )
 
+CSV_FIELDNAMES = [
+    "id",
+    "source_url",
+    "title",
+    "company",
+    "location",
+    "date_posted",
+    "scraped_at",
+]
+
 
 class ScrapingError(Exception):
     """Raised when scraping fails because the service itself is misconfigured."""
@@ -52,6 +71,14 @@ class ScrapingError(Exception):
 
 class UnsupportedSelectorError(ValueError):
     """Raised when the static scraper receives an unsupported CSS selector."""
+
+
+class ScrapedJobSaveError(Exception):
+    """Raised when saving scraped jobs to the database fails."""
+
+
+class ScrapedJobQueryError(Exception):
+    """Raised when querying scraped jobs from the database fails."""
 
 
 class DynamicScraperLike(Protocol):
@@ -457,6 +484,124 @@ class ScrapingService:
         parser.close()
 
         return parser.root
+
+
+def save_jobs(
+    db: Session,
+    user_id: int,
+    jobs: list[ScrapedJobCreate],
+) -> list[ScrapedJobOut]:
+    """Save scraped jobs for a user, skipping duplicates."""
+    saved: list[ScrapedJobOut] = []
+
+    try:
+        for job_data in jobs:
+            created = create_scraped_job(db, user_id=user_id, job_data=job_data)
+
+            if created is None:
+                logger.debug(
+                    "Skipped duplicate scraped job",
+                    extra={"user_id": user_id, "source_url": job_data.source_url},
+                )
+                continue
+
+            logger.info(
+                "Saved scraped job",
+                extra={"user_id": user_id, "job_id": created.id},
+            )
+            saved.append(ScrapedJobOut.model_validate(created))
+
+    except Exception as exc:
+        logger.exception(
+            "Failed to save scraped jobs",
+            extra={"user_id": user_id},
+        )
+        raise ScrapedJobSaveError("Could not save scraped jobs to database.") from exc
+
+    return saved
+
+
+def list_jobs(
+    db: Session,
+    user_id: int,
+    company: str | None = None,
+    location: str | None = None,
+    title: str | None = None,
+    skip: int = 0,
+    limit: int = 100,
+) -> list[ScrapedJobOut]:
+    """Return scraped jobs for a user with optional filters and pagination."""
+    try:
+        jobs = get_scraped_jobs(
+            db,
+            user_id=user_id,
+            company=company,
+            location=location,
+            title=title,
+            skip=skip,
+            limit=limit,
+        )
+        return [ScrapedJobOut.model_validate(job) for job in jobs]
+
+    except Exception as exc:
+        logger.exception(
+            "Failed to query scraped jobs",
+            extra={"user_id": user_id},
+        )
+        raise ScrapedJobQueryError(
+            "Could not fetch scraped jobs from database."
+        ) from exc
+
+
+def stream_jobs_csv(
+    db: Session,
+    user_id: int,
+    batch_size: int = 1000,
+) -> Generator[str]:
+    """Stream all scraped jobs for a user as CSV rows."""
+    header_buffer = io.StringIO()
+    csv.writer(header_buffer).writerow(CSV_FIELDNAMES)
+    yield header_buffer.getvalue()
+
+    cursor = 0
+
+    while True:
+        try:
+            # Cursor pagination avoids loading large exports into memory at once.
+            batch: list[ScrapedJob] = get_scraped_jobs(
+                db,
+                user_id=user_id,
+                after_id=cursor,
+                limit=batch_size,
+            )
+        except Exception as exc:
+            logger.exception(
+                "Failed to stream scraped jobs batch",
+                extra={"user_id": user_id, "cursor": cursor},
+            )
+            raise ScrapedJobQueryError(
+                "Stream interrupted due to database error."
+            ) from exc
+
+        if not batch:
+            break
+
+        for job in batch:
+            row_buffer = io.StringIO()
+            csv.writer(row_buffer).writerow(
+                [
+                    job.id,
+                    job.source_url,
+                    job.title,
+                    job.company,
+                    job.location,
+                    job.date_posted,
+                    job.scraped_at,
+                ]
+            )
+            yield row_buffer.getvalue()
+
+        cursor = batch[-1].id
 
 
 def failed_result(source_url: str, error_message: str) -> ScrapeResult:

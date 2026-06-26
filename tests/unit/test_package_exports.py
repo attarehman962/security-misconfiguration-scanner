@@ -1,7 +1,8 @@
 """Tests for public imports exposed by package __init__ files."""
 
 import security_scanner
-from security_scanner import models, reports, scanner, utils
+from security_scanner import models, reports, scanner, services, utils
+from security_scanner.crud import create_scraped_job, get_scraped_jobs
 
 
 def test_root_package_exports_main_public_api() -> None:
@@ -39,4 +40,8 @@ def test_domain_packages_export_public_helpers() -> None:
     assert callable(scanner.run_scan)
     assert callable(scanner.fetch_url)
     assert callable(reports.format_json)
+    assert callable(services.save_jobs)
+    assert callable(services.stream_jobs_csv)
     assert callable(utils.validate_url)
+    assert callable(create_scraped_job)
+    assert callable(get_scraped_jobs)

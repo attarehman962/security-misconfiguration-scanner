@@ -1,11 +1,12 @@
 # Security Misconfiguration Scanner
 
 A Python security scanner for learning, portfolio work, and authorized testing.
-It can run from the command line or as a FastAPI service, checking a target URL
-for common web security misconfigurations and returning structured results.
+It runs as both a command-line tool and a FastAPI service, checks target URLs for
+common web security misconfigurations, and includes a scraping workflow that can
+persist extracted job listings in the database.
 
-This is not a replacement for a professional penetration test. Only scan
-systems you own or have explicit permission to test.
+This is not a replacement for a professional penetration test. Only scan systems
+you own or have explicit permission to test.
 
 ## Features
 
@@ -15,11 +16,14 @@ systems you own or have explicit permission to test.
 - Security header checks for HSTS, CSP, X-Frame-Options, and related headers.
 - Exposure checks for weak CORS, server banners, `/.env`, `/.git/config`, and
   directory listing indicators.
-- HTTPS/TLS expiry checks.
-- JWT-based user registration, login, and current-user route.
-- Protected scrape route scaffold.
-- SQLAlchemy database setup with Alembic migrations.
-- Pytest, Ruff, and mypy development tooling.
+- HTTPS/TLS certificate expiry checks.
+- JWT-based registration, login, and current-user lookup.
+- Live URL scraping with static HTML extraction or Playwright rendering.
+- Saved scraped-job results with per-user database isolation.
+- CSV export for saved scraped results.
+- SQLAlchemy models plus Alembic migrations for users, scans, findings, and
+  scraped jobs.
+- Pytest, Ruff, mypy, and coverage tooling.
 
 ## Tech Stack
 
@@ -28,6 +32,7 @@ systems you own or have explicit permission to test.
 - Pydantic and pydantic-settings
 - SQLAlchemy and Alembic
 - HTTPX
+- python-jose and passlib/bcrypt
 - Cryptography
 - Playwright
 - Pytest, pytest-cov, Ruff, and mypy
@@ -43,14 +48,24 @@ python -m pip install -r requirements.txt
 python -m pip install -e .
 ```
 
-For local configuration, copy the example environment file and edit values as
-needed:
+Copy the example environment file and edit values as needed:
 
 ```bash
 cp .env.example .env
 ```
 
-The default database URL is `sqlite:///./app.db`.
+The default database URL is `sqlite:///./app.db`. Apply migrations before using
+database-backed API features:
+
+```bash
+alembic upgrade head
+```
+
+If you use JavaScript scraping, install Playwright browsers:
+
+```bash
+python -m playwright install chromium
+```
 
 ## CLI Usage
 
@@ -92,17 +107,8 @@ Start the development server:
 uvicorn security_scanner.main:app --reload
 ```
 
-The API runs at:
-
-```text
-http://127.0.0.1:8000
-```
-
-Interactive docs are available at:
-
-```text
-http://127.0.0.1:8000/docs
-```
+The API runs at `http://127.0.0.1:8000`. Interactive docs are available at
+`http://127.0.0.1:8000/docs`.
 
 Common routes:
 
@@ -115,7 +121,10 @@ GET  /api/v1/scans/{scan_id}
 POST /api/v1/auth/register
 POST /api/v1/auth/login
 GET  /api/v1/auth/me
-POST /api/v1/scrape
+POST /api/v1/scrape/
+POST /api/v1/scrape/results
+GET  /api/v1/scrape/results
+GET  /api/v1/scrape/results/export
 ```
 
 Start a scan:
@@ -126,21 +135,76 @@ curl -X POST http://127.0.0.1:8000/api/v1/scan \
   -d '{"url": "https://example.com"}'
 ```
 
-Check scan status using the returned `scan_id`:
+Run a live scrape without storing the result:
 
 ```bash
-curl http://127.0.0.1:8000/api/v1/scans/<scan_id>
+curl -X POST http://127.0.0.1:8000/api/v1/scrape/ \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://example.com/jobs", "css_selector": "a", "use_javascript": false}'
 ```
 
-## Database
-
-Alembic is configured with `alembic.ini` and migrations live under
-`security_scanner/db/migrations`.
-
-Run migrations with:
+Register and login before saving scraped jobs:
 
 ```bash
-alembic upgrade head
+curl -X POST http://127.0.0.1:8000/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email": "learner@example.com", "password": "change-me-123"}'
+
+TOKEN=$(curl -s -X POST http://127.0.0.1:8000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "learner@example.com", "password": "change-me-123"}' \
+  | python -c "import json,sys; print(json.load(sys.stdin)['access_token'])")
+```
+
+Save scraped job records to the database:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/scrape/results \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "source_url": "https://jobs.example.com/1",
+      "title": "Security Engineer",
+      "company": "Example Labs",
+      "location": "Remote"
+    }
+  ]'
+```
+
+List saved scraped jobs:
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" \
+  "http://127.0.0.1:8000/api/v1/scrape/results?company=Example&limit=50"
+```
+
+Export saved scraped jobs as CSV:
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" \
+  http://127.0.0.1:8000/api/v1/scrape/results/export
+```
+
+## Scraped Data Persistence
+
+Live scraping and stored scraped jobs share one service module:
+`security_scanner/services/scraping_service.py`.
+
+The live scrape path returns extracted items immediately and does not write to
+the database. The saved-results path accepts normalized job records, stores them
+in the `scraped_jobs` table, skips duplicates for the same user/source/title,
+and returns only newly inserted rows.
+
+Important files:
+
+```text
+security_scanner/api/v1/routes/scrapes.py      HTTP routes
+security_scanner/services/scraping_service.py  live scraping and saved-job service logic
+security_scanner/crud/scraped_job.py           database insert/query helpers
+security_scanner/models/scraped_job.py         SQLAlchemy table model
+security_scanner/schemas/scraped_job.py        Pydantic request/response models
+learn/                                         learning notes and LaTeX data-flow guides
 ```
 
 ## Tests And Quality
@@ -170,14 +234,15 @@ mypy security_scanner tests
 security_scanner/
   api/v1/          FastAPI routes and dependencies
   core/            Settings, logging, security helpers, exception handling
+  crud/            Database-focused insert/query helpers
   db/              SQLAlchemy session setup and Alembic migrations
   models/          Domain and database models
-  repositories/    Database access helpers
-  reports/         JSON and table formatters
+  repositories/    User repository helpers
+  reports/         JSON and table formatters/exporters
   scanner/         Scanner runner, HTTP client, and checks
   schemas/         Pydantic request and response schemas
-  scraper/         Playwright scraper support
-  services/        Scan job orchestration and application services
+  scraper/         Playwright scraper support and scrape data classes
+  services/        Application service layer
   tasks/           Task entry points
   utils/           URL, TLS, validation, and fetch utilities
 
@@ -190,12 +255,8 @@ docs/
   api.md
   architecture.md
   setup.md
+
+learn/
+  security_scanner_notes.tex
+  url_to_results_streamline.tex
 ```
-
-## More Documentation
-
-- `docs/setup.md` for local setup notes.
-- `docs/api.md` for API design details.
-- `docs/architecture.md` for application structure.
-- `docs/security_misconfiguration_scanner_learning_guide.md` for the learning
-  guide.

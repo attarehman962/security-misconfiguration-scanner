@@ -1,0 +1,172 @@
+# Architecture
+
+The project is organized as a layered Python application. The CLI, FastAPI
+routes, scanner checks, scraper, database models, and tests are separate so each
+piece has a clear reason to change.
+
+## Main Layers
+
+```text
+CLI / FastAPI routes
+  -> schemas
+  -> services
+  -> scanner, scraper, crud, repositories
+  -> models and database
+```
+
+## Package Map
+
+```text
+security_scanner/main.py
+  Builds the FastAPI app and mounts routers under /api/v1.
+
+security_scanner/cli.py
+  Parses terminal arguments and runs scanner logic.
+
+security_scanner/api/v1/routes/
+  Owns HTTP endpoints. Route functions should stay thin: validate HTTP input,
+  call services, and return Pydantic response models.
+
+security_scanner/api/v1/dependencies.py
+  Provides shared FastAPI dependencies such as the database session, current
+  user, scanner, and scan job store.
+
+security_scanner/schemas/
+  Defines Pydantic request and response contracts. These models form the public
+  API boundary.
+
+security_scanner/services/
+  Coordinates application workflows. This is where routes hand off business
+  behavior.
+
+security_scanner/scanner/
+  Contains the security misconfiguration scanner runner, HTTP helpers, and
+  checks.
+
+security_scanner/scraper/
+  Contains scraping data classes and Playwright-backed dynamic scraping support.
+
+security_scanner/crud/
+  Contains database-specific create/query helpers for SQLAlchemy models.
+
+security_scanner/repositories/
+  Contains user repository behavior used by auth.
+
+security_scanner/models/
+  Contains domain data classes and SQLAlchemy database models.
+
+security_scanner/db/
+  Owns SQLAlchemy Base/session setup and Alembic migrations.
+
+learn/
+  Stores learning notes and LaTeX guides explaining how data moves through the
+  project.
+```
+
+## Scraping Architecture
+
+The two scraping service files were merged into one module:
+
+```text
+security_scanner/services/scraping_service.py
+```
+
+That module now owns two related workflows:
+
+- live scraping, through `ScrapingService`
+- persisted scraped-job records, through `save_jobs`, `list_jobs`, and
+  `stream_jobs_csv`
+
+This keeps route imports clear:
+
+```python
+from security_scanner.services.scraping_service import (
+    ScrapedJobQueryError,
+    ScrapedJobSaveError,
+    ScrapingError,
+    ScrapingService,
+    list_jobs,
+    save_jobs,
+    stream_jobs_csv,
+)
+```
+
+## Live Scrape Flow
+
+```text
+POST /api/v1/scrape/
+  -> routes/scrapes.py:scrape_url
+  -> ScrapingService.scrape_url
+  -> static HTML parser or Playwright
+  -> ScrapeResult
+  -> scrape_result_to_response
+  -> ScrapeResponse JSON
+```
+
+Live scraping is intentionally non-persistent. It is useful for immediate
+inspection and experimentation.
+
+## Saved Scraped Jobs Flow
+
+```text
+POST /api/v1/scrape/results
+  -> get_current_user
+  -> save_scraped_jobs
+  -> save_jobs
+  -> create_scraped_job
+  -> ScrapedJob row
+```
+
+Saved scraped jobs are user-owned. The table has `user_id`, and every query
+filters by the authenticated user's ID. The unique constraint
+`uq_scraped_jobs_user_source_title` prevents duplicate job rows for the same
+user/source/title combination.
+
+## CSV Export Flow
+
+```text
+GET /api/v1/scrape/results/export
+  -> get_current_user
+  -> export_scraped_jobs
+  -> stream_jobs_csv
+  -> get_scraped_jobs(after_id=cursor)
+  -> StreamingResponse
+```
+
+CSV export uses cursor-based pagination so large result sets do not need to be
+loaded into memory all at once.
+
+## Database Ownership
+
+SQLAlchemy models live in `security_scanner/models/`.
+
+Alembic migrations live in:
+
+```text
+security_scanner/db/migrations/versions/
+```
+
+The scraped-job persistence path uses:
+
+```text
+models/scraped_job.py
+crud/scraped_job.py
+services/scraping_service.py
+api/v1/routes/scrapes.py
+```
+
+## Testing Strategy
+
+Tests are split by behavior:
+
+- `tests/unit/test_scraping_service.py` covers static and dynamic scraping
+  service dispatch.
+- `tests/api/test_scrapes.py` covers the live scrape API route with fake
+  services.
+- `tests/unit/test_scrape_results.py` covers scraped-job CRUD, saved results,
+  filtering, pagination, CSV export, and authentication guards.
+- `tests/conftest.py` creates an in-memory SQLite database and authenticated
+  test users.
+
+This split keeps live scraping tests deterministic and database tests focused on
+persistence behavior.

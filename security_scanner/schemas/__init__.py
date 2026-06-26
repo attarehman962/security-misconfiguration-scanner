@@ -20,6 +20,11 @@ from security_scanner.schemas.scrape import (
     StructuredScrapeRequest,
     scrape_result_to_response,
 )
+from security_scanner.schemas.scraped_job import (
+    ScrapedJobCreate,
+    ScrapedJobFilter,
+    ScrapedJobOut,
+)
 
 __all__ = [
     "ErrorResponse",
@@ -32,6 +37,9 @@ __all__ = [
     "ScanResultResponse",
     "ScanStartRequest",
     "ScanStatusResponse",
+    "ScrapedJobCreate",
+    "ScrapedJobFilter",
+    "ScrapedJobOut",
     "ScrapedItemResponse",
     "ScrapeRequest",
     "ScrapeResponse",
