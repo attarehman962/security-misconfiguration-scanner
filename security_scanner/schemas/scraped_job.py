@@ -1,5 +1,8 @@
-# security_scanner/schemas/scraped_job.py
+# RIGHT — stdlib before third-party
+from __future__ import annotations
+
 from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict, HttpUrl
 
 

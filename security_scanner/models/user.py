@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime
 from typing import TYPE_CHECKING
 
@@ -37,7 +39,7 @@ class User(Base):
         nullable=False,
         server_default=func.now(),
     )
-    scraped_jobs: Mapped[list["ScrapedJob"]] = relationship(
+    scraped_jobs: Mapped[list[ScrapedJob]] = relationship(
         "ScrapedJob",
         back_populates="user",
         cascade="all, delete-orphan",

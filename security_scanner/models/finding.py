@@ -1,8 +1,8 @@
-"""Finding model — a single security check result within a scan."""
+from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String, Text, ForeignKey, Enum as SqlEnum
+from sqlalchemy import Enum as SqlEnum, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from security_scanner.db import Base
@@ -27,4 +27,4 @@ class Finding(Base):
     description: Mapped[str] = mapped_column(Text, nullable=False)
     remediation: Mapped[str] = mapped_column(Text, nullable=False)
 
-    scan: Mapped["ScanRecord"] = relationship("ScanRecord", back_populates="findings")
+    scan: Mapped[ScanRecord] = relationship("ScanRecord", back_populates="findings")
