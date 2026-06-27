@@ -73,9 +73,7 @@ def get_ssl_expiry_date(url: str) -> datetime | None:
                 der_certificate = tls_socket.getpeercert(binary_form=True)
 
         if der_certificate is None:
-            raise SslCertificateError(
-                f"No certificate returned by server: {hostname}"
-            )
+            raise SslCertificateError(f"No certificate returned by server: {hostname}")
 
         # cryptography parses the binary DER certificate into a typed object.
         certificate = x509.load_der_x509_certificate(der_certificate)

@@ -48,6 +48,7 @@ class ScanService:
             findings=findings,
             total_score=85,
         )
+
     def list_scans(self) -> list[ScanResponse]:
         """Return scan history until persistent storage is added."""
         return []

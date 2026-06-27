@@ -1,5 +1,3 @@
-"""Database model for persisted security scan runs."""
-
 from __future__ import annotations
 
 from datetime import datetime
@@ -36,13 +34,13 @@ class ScanRecord(Base):
     url: Mapped[str] = mapped_column(String(2048), nullable=False)
 
     status: Mapped[ScanRecordStatus] = mapped_column(
-    Enum(
-        ScanRecordStatus,
-        name="scanrecordstatus",
-        native_enum=True,
-        values_callable=lambda enum_cls: [e.value for e in enum_cls],
-    ),
-         nullable=False,
+        Enum(
+            ScanRecordStatus,
+            name="scanrecordstatus",
+            native_enum=True,
+            values_callable=lambda enum_cls: [e.value for e in enum_cls],
+        ),
+        nullable=False,
         default=ScanRecordStatus.PENDING,
     )
 
@@ -57,7 +55,7 @@ class ScanRecord(Base):
         nullable=True,
     )
 
-    findings: Mapped[list["Finding"]] = relationship(
+    findings: Mapped[list[Finding]] = relationship(
         "Finding",
         back_populates="scan",
         cascade="all, delete-orphan",

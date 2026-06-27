@@ -35,8 +35,7 @@ def test_run_header_checks_all_headers_missing_returns_all_failed() -> None:
 
     # Build a lookup so severity expectations stay tied to each header name.
     severities_by_header = {
-        finding.check_name: finding.severity
-        for finding in findings
+        finding.check_name: finding.severity for finding in findings
     }
 
     assert severities_by_header["Strict-Transport-Security"] is Severity.HIGH
@@ -58,8 +57,7 @@ def test_run_header_checks_partial_headers_returns_mixed_results() -> None:
 
     # Convert findings into a lookup to make mixed pass/fail assertions clear.
     passed_by_header = {
-        finding.check_name: finding.status is Status.PASS
-        for finding in findings
+        finding.check_name: finding.status is Status.PASS for finding in findings
     }
 
     assert passed_by_header["Strict-Transport-Security"] is True

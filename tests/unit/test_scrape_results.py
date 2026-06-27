@@ -18,6 +18,7 @@ BASE = "/api/v1/scrape"  # change once here if prefix ever changes
 
 # ── Helper ────────────────────────────────────────────────────────────────────
 
+
 def make_job(url: str, title: str = "Engineer", **kwargs: str) -> ScrapedJobCreate:
     """Build a ScrapedJobCreate without repeating HttpUrl() in every test."""
     return ScrapedJobCreate(
@@ -28,6 +29,7 @@ def make_job(url: str, title: str = "Engineer", **kwargs: str) -> ScrapedJobCrea
 
 
 # ── CRUD: insert ──────────────────────────────────────────────────────────────
+
 
 def test_create_scraped_job_inserts_new_row(
     db_session: Session,
@@ -53,6 +55,7 @@ def test_create_scraped_job_inserts_new_row(
 
 # ── CRUD: duplicate skipping ──────────────────────────────────────────────────
 
+
 def test_create_scraped_job_skips_duplicate(
     db_session: Session,
     test_user: User,
@@ -69,6 +72,7 @@ def test_create_scraped_job_skips_duplicate(
 
 # ── CRUD: user isolation ──────────────────────────────────────────────────────
 
+
 def test_different_users_can_scrape_same_url(
     db_session: Session,
     test_user: User,
@@ -78,7 +82,11 @@ def test_different_users_can_scrape_same_url(
     job = make_job("https://example.com/jobs/3", title="DevOps Engineer")
 
     result_user_one = create_scraped_job(db_session, user_id=test_user.id, job_data=job)
-    result_user_two = create_scraped_job(db_session, user_id=other_test_user.id, job_data=job)
+    result_user_two = create_scraped_job(
+        db_session,
+        user_id=other_test_user.id,
+        job_data=job,
+    )
 
     assert result_user_one is not None
     assert result_user_two is not None
@@ -108,6 +116,7 @@ def test_get_scraped_jobs_returns_only_user_jobs(
 
 
 # ── CRUD: filters ─────────────────────────────────────────────────────────────
+
 
 def test_get_scraped_jobs_filters_by_company(
     db_session: Session,
@@ -177,6 +186,7 @@ def test_get_scraped_jobs_filters_by_title(
 
 # ── API: save ─────────────────────────────────────────────────────────────────
 
+
 def test_save_scraped_jobs_returns_201(
     client: TestClient,
     auth_headers: dict[str, str],
@@ -220,6 +230,7 @@ def test_save_scraped_jobs_skips_duplicates(
 
 # ── API: list ─────────────────────────────────────────────────────────────────
 
+
 def test_list_scraped_jobs_returns_only_own(
     client: TestClient,
     auth_headers: dict[str, str],
@@ -251,12 +262,20 @@ def test_list_scraped_jobs_filters_by_company(
     create_scraped_job(
         db_session,
         user_id=test_user.id,
-        job_data=make_job("https://jobs.example.com/4", title="Engineer", company="Apple"),
+        job_data=make_job(
+            "https://jobs.example.com/4",
+            title="Engineer",
+            company="Apple",
+        ),
     )
     create_scraped_job(
         db_session,
         user_id=test_user.id,
-        job_data=make_job("https://jobs.example.com/5", title="Engineer", company="Microsoft"),
+        job_data=make_job(
+            "https://jobs.example.com/5",
+            title="Engineer",
+            company="Microsoft",
+        ),
     )
 
     response = client.get(f"{BASE}/results?company=Apple", headers=auth_headers)
@@ -290,6 +309,7 @@ def test_list_scraped_jobs_filters_by_location(
 
 
 # ── API: pagination ───────────────────────────────────────────────────────────
+
 
 def test_list_scraped_jobs_pagination(
     client: TestClient,
@@ -339,6 +359,7 @@ def test_list_scraped_jobs_second_page(
 
 # ── API: export ───────────────────────────────────────────────────────────────
 
+
 def test_export_returns_valid_csv(
     client: TestClient,
     auth_headers: dict[str, str],
@@ -366,8 +387,13 @@ def test_export_returns_valid_csv(
 
     # verify correct CSV headers matching model fields
     assert rows[0] == [
-        "id", "source_url", "title",
-        "company", "location", "date_posted", "scraped_at",
+        "id",
+        "source_url",
+        "title",
+        "company",
+        "location",
+        "date_posted",
+        "scraped_at",
     ]
     assert len(rows) == 2  # header + 1 data row
 
@@ -389,6 +415,7 @@ def test_export_empty_when_no_jobs(
 
 
 # ── API: auth guards ──────────────────────────────────────────────────────────
+
 
 def test_list_scraped_jobs_requires_authentication(client: TestClient) -> None:
     """GET /api/v1/scrape/results returns 401 without authentication."""

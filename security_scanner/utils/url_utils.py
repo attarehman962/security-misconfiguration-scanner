@@ -53,9 +53,7 @@ def normalize_url(raw_url: str) -> str:
     if hostname is None:
         raise InvalidURLError("URL hostname is missing.")
 
-    normalized_url = urlunparse(
-        parsed_url._replace(scheme=parsed_url.scheme.lower())
-    )
+    normalized_url = urlunparse(parsed_url._replace(scheme=parsed_url.scheme.lower()))
 
     # Removing one trailing slash keeps equivalent roots consistent in reports.
     return normalized_url.rstrip("/")

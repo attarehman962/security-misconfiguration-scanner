@@ -9,6 +9,7 @@ from enum import StrEnum
 
 class Severity(StrEnum):
     """Supported finding severity levels."""
+
     INFO = "Info"
     LOW = "Low"
     MEDIUM = "Medium"
@@ -17,6 +18,7 @@ class Severity(StrEnum):
 
 class Status(StrEnum):
     """Supported finding status values."""
+
     PASS = "Pass"
     FAIL = "Fail"
 

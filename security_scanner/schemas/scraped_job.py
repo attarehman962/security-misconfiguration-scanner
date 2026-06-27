@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, HttpUrl
 
 class ScrapedJobCreate(BaseModel):
     """Payload for creating a scraped job."""
+
     source_url: HttpUrl
     title: str
     company: str | None = None
@@ -17,6 +18,7 @@ class ScrapedJobCreate(BaseModel):
 
 class ScrapedJobOut(BaseModel):
     """Scraped job returned to the client."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -30,6 +32,7 @@ class ScrapedJobOut(BaseModel):
 
 class ScrapedJobFilter(BaseModel):
     """Query filters for listing scraped jobs."""
+
     company: str | None = None
     location: str | None = None
     title: str | None = None

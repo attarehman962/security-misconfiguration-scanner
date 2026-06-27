@@ -249,9 +249,7 @@ def _build_ssl_finding(url: str) -> Finding | None:
             status=Status.FAIL,
             severity=Severity.HIGH,
             description="The SSL certificate is expired.",
-            remediation=(
-                "Renew and deploy a valid SSL/TLS certificate immediately."
-            ),
+            remediation=("Renew and deploy a valid SSL/TLS certificate immediately."),
         )
 
     if days_remaining <= 14:

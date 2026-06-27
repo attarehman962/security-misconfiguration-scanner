@@ -132,9 +132,7 @@ def test_cli_writes_json_output_file(
 
     assert exit_code == 0
     assert saved_data["url"] == "https://example.com"
-    assert saved_data["findings"][0]["check_name"] == (
-        "Content-Security-Policy"
-    )
+    assert saved_data["findings"][0]["check_name"] == ("Content-Security-Policy")
 
 
 def test_cli_help_prints_usage(capsys: CaptureFixture[str]) -> None:

@@ -171,23 +171,8 @@ def test_run_exposure_checks_returns_all_day5_findings() -> None:
 
     assert len(findings) == 6
     assert any(finding.check_name == "Weak CORS policy" for finding in findings)
-    assert any(
-        finding.check_name == "Server banner exposure"
-        for finding in findings
-    )
-    assert any(
-        finding.check_name == "X-Powered-By exposure"
-        for finding in findings
-    )
-    assert any(
-        finding.check_name == "Parent Directory Listing"
-        for finding in findings
-    )
-    assert any(
-        finding.check_name == "Exposed .env file"
-        for finding in findings
-    )
-    assert any(
-        finding.check_name == "Exposed .git/config"
-        for finding in findings
-    )
+    assert any(finding.check_name == "Server banner exposure" for finding in findings)
+    assert any(finding.check_name == "X-Powered-By exposure" for finding in findings)
+    assert any(finding.check_name == "Parent Directory Listing" for finding in findings)
+    assert any(finding.check_name == "Exposed .env file" for finding in findings)
+    assert any(finding.check_name == "Exposed .git/config" for finding in findings)

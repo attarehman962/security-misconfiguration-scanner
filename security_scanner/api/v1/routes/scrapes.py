@@ -47,6 +47,7 @@ ScrapingServiceDependency = Annotated[ScrapingService, Depends(get_scraping_serv
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 
+
 @router.post(
     "/",
     response_model=ScrapeResponse,
@@ -143,6 +144,7 @@ async def export_scraped_jobs(
     current_user: CurrentUserDependency,
 ) -> StreamingResponse:
     """Stream all scraped jobs for the current user as a downloadable CSV."""
+
     async def csv_rows() -> AsyncIterator[str]:
         # Keep the route response asynchronous while the service owns CSV batching.
         for row in stream_jobs_csv(db=db, user_id=current_user.id):
@@ -151,7 +153,5 @@ async def export_scraped_jobs(
     return StreamingResponse(
         csv_rows(),
         media_type="text/csv",
-        headers={
-            "Content-Disposition": "attachment; filename=scraped_results.csv"
-        },
+        headers={"Content-Disposition": "attachment; filename=scraped_results.csv"},
     )

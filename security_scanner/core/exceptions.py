@@ -34,6 +34,7 @@ class SSLError(ScannerError):
 class ScanTimeoutError(NetworkError):
     """Raised when a scan operation exceeds the allowed time limit."""
 
+
 logger = logging.getLogger(__name__)
 
 

@@ -378,8 +378,7 @@ class ScrapingService:
             items = [
                 item
                 for item in (
-                    generic_item_from_node(node=node, source_url=url)
-                    for node in nodes
+                    generic_item_from_node(node=node, source_url=url) for node in nodes
                 )
                 if item is not None
             ]

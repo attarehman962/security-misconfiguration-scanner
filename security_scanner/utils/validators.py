@@ -36,9 +36,7 @@ def validate_url(value: str) -> str:
         raise ArgumentTypeError(f"Invalid URL: {error}") from error
 
     if parsed_url.scheme.lower() not in ALLOWED_SCHEMES:
-        raise ArgumentTypeError(
-            "Invalid URL: must start with http:// or https://."
-        )
+        raise ArgumentTypeError("Invalid URL: must start with http:// or https://.")
 
     if hostname is None:
         raise ArgumentTypeError("Invalid URL: hostname is missing.")
