@@ -4,7 +4,7 @@ import argparse
 import asyncio
 from pathlib import Path
 
-from security_scanner.reports import save_items_csv, save_result_json
+from security_scanner.reporting import save_items_csv, save_result_json
 from security_scanner.scraper import DynamicPageScraper, ScrapeConfig
 
 

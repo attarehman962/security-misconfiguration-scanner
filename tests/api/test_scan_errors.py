@@ -1,16 +1,20 @@
 import asyncio
 import logging
+from collections.abc import AsyncGenerator
 
 import httpx
 from fastapi import FastAPI
 from pytest import LogCaptureFixture, MonkeyPatch
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 
-from security_scanner.api.v1.dependencies import get_scan_job_store, get_scanner
-from security_scanner.api.v1.routes import scans as scans_route
+from security_scanner.api.v1.dependencies import get_current_user, get_scanner
+from security_scanner.crud.scan import update_scan_status
+from security_scanner.db import Base, get_db
 from security_scanner.main import create_app
-from security_scanner.models import ScanResult
+from security_scanner.models import ScanRecordStatus, ScanResult, User
 from security_scanner.services import InvalidScanTargetError
-from security_scanner.services.scan_job_store import InMemoryScanJobStore
 
 
 class FakeScanner:
@@ -30,19 +34,39 @@ class FailingScanner:
 
 
 def build_test_app() -> FastAPI:
-    """Create an app with an isolated scan store and fake scanner."""
+    """Create an app with an isolated database, user, and fake scanner."""
     app = create_app()
-    job_store = InMemoryScanJobStore()
-    app.state.scan_job_store = job_store
+    engine = create_engine(
+        "sqlite+pysqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    testing_session_local = sessionmaker(
+        autocommit=False,
+        autoflush=False,
+        bind=engine,
+    )
+    Base.metadata.create_all(bind=engine)
+    db_session = testing_session_local()
+    user = User(email="scan-errors@example.com", hashed_password="not-used")
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    app.state.db_session = db_session
+    app.state.engine = engine
 
-    async def override_get_scan_job_store() -> InMemoryScanJobStore:
-        return job_store
+    async def override_get_db() -> AsyncGenerator[Session]:
+        yield db_session
 
     async def override_get_scanner() -> FakeScanner:
         return FakeScanner()
 
-    app.dependency_overrides[get_scan_job_store] = override_get_scan_job_store
+    async def override_get_current_user() -> User:
+        return user
+
+    app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_scanner] = override_get_scanner
+    app.dependency_overrides[get_current_user] = override_get_current_user
     return app
 
 
@@ -115,7 +139,7 @@ def test_get_missing_scan_returns_consistent_404() -> None:
     """
     app = build_test_app()
 
-    response = request(app, "GET", "/api/v1/scans/missing-id")
+    response = request(app, "GET", "/api/v1/scans/999")
 
     assert response.status_code == 404
     assert response.json() == {
@@ -139,10 +163,13 @@ def test_create_scan_business_rejection_is_recorded_as_failed_job(
 
     app.dependency_overrides[get_scanner] = override_get_scanner
 
-    async def skip_background_scan(*args: object) -> None:
+    def skip_background_scan(*args: object) -> None:
         return None
 
-    monkeypatch.setattr(scans_route, "run_scan_job", skip_background_scan)
+    monkeypatch.setattr(
+        "security_scanner.services.scan_service.run_scan_job",
+        skip_background_scan,
+    )
 
     response = request(
         app,
@@ -154,9 +181,11 @@ def test_create_scan_business_rejection_is_recorded_as_failed_job(
     assert response.status_code == 202
 
     response_body = response.json()
-    app.state.scan_job_store.mark_failed(
+    update_scan_status(
+        app.state.db_session,
         response_body["scan_id"],
-        "This target is not allowed.",
+        ScanRecordStatus.FAILED,
+        error_message="This target is not allowed.",
     )
     status_response = request(app, "GET", response_body["status_url"])
 

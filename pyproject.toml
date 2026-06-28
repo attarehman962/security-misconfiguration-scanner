@@ -2,7 +2,7 @@
 name = "security-misconfiguration-scanner"
 version = "0.1.0"
 description = "Python security misconfiguration scanner portfolio project."
-requires-python = ">=3.14"
+requires-python = ">=3.11"
 dependencies = [
     "alembic",
     "bcrypt==4.0.1",
@@ -14,6 +14,7 @@ dependencies = [
     "pydantic[email]",
     "pydantic-settings",
     "python-jose[cryptography]",
+    "reportlab",
     "SQLAlchemy",
     "starlette<1.0",
 ]
@@ -31,14 +32,14 @@ dev = [
 
 [tool.ruff]
 line-length = 88
-target-version = "py314"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "ANN"]
 ignore = []
 
 [tool.mypy]
-python_version = "3.14"
+python_version = "3.11"
 strict = true
 warn_unused_configs = true
 warn_return_any = true

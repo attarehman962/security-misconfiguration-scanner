@@ -9,6 +9,7 @@ playwright==1.60.0
 pydantic[email]
 pydantic-settings
 python-jose[cryptography]
+reportlab
 SQLAlchemy
 starlette<1.0
 

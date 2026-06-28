@@ -5,6 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
+from typing import Literal, TypeAlias
+
+RiskLevel: TypeAlias = Literal["none", "low", "medium", "high", "critical"]
 
 
 class Severity(StrEnum):
@@ -22,6 +25,8 @@ class Status(StrEnum):
     PASS = "Pass"
     FAIL = "Fail"
 
+
+# ── Domain models ─────────────────────────────────────────────────────────────
 
 @dataclass(frozen=True)
 class UrlScanResult:
@@ -74,12 +79,16 @@ class ScanResult:
     timestamp: datetime
     total_score: int
     findings: list[Finding]
+    risk_score: float | None = None   # defaults last — dataclass rule
+    risk_level: RiskLevel | None = None
 
-    def to_dict(self) -> dict[str, str | int | list[dict[str, str]]]:
+    def to_dict(self) -> dict[str, str | int | float | list[dict[str, str]] | None]:
         """Convert the scan result into a JSON-serializable dictionary."""
         return {
             "url": self.url,
             "timestamp": self.timestamp.isoformat(),
             "total_score": self.total_score,
+            "risk_score": self.risk_score,
+            "risk_level": self.risk_level,
             "findings": [finding.to_dict() for finding in self.findings],
         }

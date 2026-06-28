@@ -81,7 +81,10 @@ def update_scan_status(
         return
     scan.status = status
     if error_message:
+        scan.error_message = error_message
         logger.error("Scan %s failed: %s", scan_id, error_message)
+    elif status is not ScanRecordStatus.FAILED:
+        scan.error_message = None
     if status in (ScanRecordStatus.COMPLETED, ScanRecordStatus.FAILED):
         scan.completed_at = datetime.now(UTC)
     db.commit()

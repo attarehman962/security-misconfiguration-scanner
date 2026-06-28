@@ -15,7 +15,7 @@ from security_scanner.models import (
     Status,
     UrlScanResult,
 )
-from security_scanner.reports import (
+from security_scanner.reporting import (
     format_json,
     format_table,
     serialize_finding,

@@ -77,7 +77,6 @@ results.json
 scan-result.json
 scan_results.json
 scan_results/
-reports/
 /output/
 /artifacts/
 /tmp/

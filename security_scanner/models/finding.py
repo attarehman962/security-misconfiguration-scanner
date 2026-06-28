@@ -29,3 +29,5 @@ class Finding(Base):
     remediation: Mapped[str] = mapped_column(Text, nullable=False)
 
     scan: Mapped[ScanRecord] = relationship("ScanRecord", back_populates="findings")
+    # Inside your existing Finding model — adjust to your actual base class/style
+    remediation: Mapped[str] = mapped_column(Text, nullable=False)

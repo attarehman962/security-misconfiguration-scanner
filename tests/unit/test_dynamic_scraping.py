@@ -8,7 +8,7 @@ from typing import Any
 
 import pytest
 
-from security_scanner.reports import save_items_csv, save_result_json
+from security_scanner.reporting import save_items_csv, save_result_json
 from security_scanner.scraper import (
     DynamicPageScraper,
     ScrapeConfig,

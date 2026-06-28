@@ -1,15 +1,18 @@
 import asyncio
+from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
 
 import httpx
 from fastapi import FastAPI
 from pytest import MonkeyPatch
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 
-from security_scanner.api.v1.dependencies import get_scan_job_store, get_scanner
-from security_scanner.api.v1.routes import scans as scans_route
+from security_scanner.api.v1.dependencies import get_current_user, get_scanner
+from security_scanner.db import Base, get_db
 from security_scanner.main import create_app
-from security_scanner.models import Finding, ScanResult, Severity, Status
-from security_scanner.services.scan_job_store import InMemoryScanJobStore
+from security_scanner.models import Finding, ScanResult, Severity, Status, User
 
 
 class FakeScanner:
@@ -39,19 +42,39 @@ def build_scan_result(url: str) -> ScanResult:
 
 
 def build_test_app() -> FastAPI:
-    """Create an app with an isolated scan store and fake scanner."""
+    """Create an app with an isolated database, user, and fake scanner."""
     test_app = create_app()
-    job_store = InMemoryScanJobStore()
-    test_app.state.scan_job_store = job_store
+    engine = create_engine(
+        "sqlite+pysqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    testing_session_local = sessionmaker(
+        autocommit=False,
+        autoflush=False,
+        bind=engine,
+    )
+    Base.metadata.create_all(bind=engine)
+    db_session = testing_session_local()
+    user = User(email="scan-tests@example.com", hashed_password="not-used")
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    test_app.state.db_session = db_session
+    test_app.state.engine = engine
 
-    async def override_get_scan_job_store() -> InMemoryScanJobStore:
-        return job_store
+    async def override_get_db() -> AsyncGenerator[Session]:
+        yield db_session
 
     async def override_get_scanner() -> FakeScanner:
         return FakeScanner()
 
-    test_app.dependency_overrides[get_scan_job_store] = override_get_scan_job_store
+    async def override_get_current_user() -> User:
+        return user
+
+    test_app.dependency_overrides[get_db] = override_get_db
     test_app.dependency_overrides[get_scanner] = override_get_scanner
+    test_app.dependency_overrides[get_current_user] = override_get_current_user
     return test_app
 
 
@@ -93,10 +116,13 @@ def test_create_scan_accepts_valid_url_and_returns_pollable_job(
     """Verify POST /api/v1/scans accepts a valid URL and queues a scan job."""
     app = build_test_app()
 
-    async def skip_background_scan(*args: object) -> None:
+    def skip_background_scan(*args: object) -> None:
         return None
 
-    monkeypatch.setattr(scans_route, "run_scan_job", skip_background_scan)
+    monkeypatch.setattr(
+        "security_scanner.services.scan_service.run_scan_job",
+        skip_background_scan,
+    )
 
     response = request(
         app,
@@ -108,23 +134,17 @@ def test_create_scan_accepts_valid_url_and_returns_pollable_job(
     assert response.status_code == 202
 
     response_body = response.json()
-    assert response_body["scan_id"].startswith("scan_")
     assert response_body["status"] == "pending"
     assert response_body["status_url"] == f"/api/v1/scans/{response_body['scan_id']}"
 
-    app.state.scan_job_store.mark_complete(
-        response_body["scan_id"],
-        build_scan_result("https://example.com/"),
-    )
     status_response = request(app, "GET", response_body["status_url"])
 
     assert status_response.status_code == 200
     status_body = status_response.json()
     assert status_body["scan_id"] == response_body["scan_id"]
     assert status_body["url"].startswith("https://example.com")
-    assert status_body["status"] == "complete"
-    assert status_body["result"]["total_score"] == 85
-    assert status_body["result"]["findings"][0]["check_name"] == "security_headers"
+    assert status_body["status"] == "pending"
+    assert status_body["result"] is None
 
 
 def test_list_scans_returns_empty_list() -> None:

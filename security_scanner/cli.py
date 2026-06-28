@@ -7,7 +7,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from security_scanner.core import ScannerError, configure_logging
-from security_scanner.reports import format_json, format_table
+from security_scanner.reporting import format_json, format_table
 from security_scanner.scanner import run_scan
 from security_scanner.utils import validate_url
 

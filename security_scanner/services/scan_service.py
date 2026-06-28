@@ -54,12 +54,7 @@ def submit_scan(
         raise ScanSubmissionError("Could not create scan.") from exc
 
     try:
-        background_tasks.add_task(
-            run_scan_job,
-            scan.id,
-            target_url,
-            scanner,
-        )
+        background_tasks.add_task(_run_scan_job_task, scan.id, target_url, scanner)
     except Exception as exc:
         logger.exception("Failed to queue scan scan_id=%s", scan.id)
         raise ScanSubmissionError("Could not queue scan.") from exc
@@ -69,6 +64,15 @@ def submit_scan(
         status=scan.status,
         status_url=f"/api/v1/scans/{scan.id}",
     )
+
+
+async def _run_scan_job_task(
+    scan_id: int,
+    target_url: str,
+    scanner: ScannerProtocol,
+) -> None:
+    """Async wrapper for FastAPI background execution."""
+    run_scan_job(scan_id, target_url, scanner)
 
 
 def list_user_scans(*, db: Session, user_id: int) -> list[ScanStatusResponse]:
@@ -107,7 +111,7 @@ def _scan_record_to_response(scan: ScanRecord) -> ScanStatusResponse:
         scan_id=scan.id,
         url=scan.url,
         status=scan.status,
-        error_message=None,
+        error_message=scan.error_message,
         result=_scan_result_response(scan),
     )
 

@@ -10,7 +10,9 @@ from security_scanner.core import (
 from security_scanner.models import Finding, ScanResult, Severity, Status
 from security_scanner.scanner.http_client import FetchResult, fetch_url
 from security_scanner.scanner.runner import (
-    SecurityMisconfigurationScanner,
+    ScannerProtocol as SecurityMisconfigurationScanner,
+)
+from security_scanner.scanner.runner import (
     run_full_scan,
     run_scan,
 )
