@@ -96,5 +96,5 @@ test-results/
 security_scanner/db/migrations/versions/*
 !security_scanner/db/migrations/versions/.gitkeep
 
-
-.github/
+# GitHub Actions workflows
+.github/workflows/
