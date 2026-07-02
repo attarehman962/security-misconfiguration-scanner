@@ -95,3 +95,6 @@ test-results/
 # Alembic migration files (keep folder structure, ignore generated migrations)
 security_scanner/db/migrations/versions/*
 !security_scanner/db/migrations/versions/.gitkeep
+
+
+.github/
