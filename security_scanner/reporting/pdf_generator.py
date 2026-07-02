@@ -5,6 +5,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
+from reportlab.pdfgen.canvas import Canvas
 from reportlab.platypus import (
     BaseDocTemplate,
     Frame,
@@ -33,7 +34,9 @@ _SEVERITY_COLORS: dict[str, colors.Color] = {
 class _FooterCanvas(Protocol):
     def saveState(self) -> None: ...
 
-    def setFont(self, font_name: str, font_size: int) -> None: ...
+    def setFont(
+        self, psfontname: str, size: float, leading: float | None = None
+    ) -> None: ...
 
     def drawCentredString(self, x: float, y: float, text: str) -> None: ...
 
@@ -42,6 +45,19 @@ class _FooterCanvas(Protocol):
 
 class _FooterDocument(Protocol):
     page: int
+
+
+def _invariant_canvas(*args, **kwargs) -> Canvas:
+    """Canvas factory that strips wall-clock timestamps and random IDs.
+
+    ReportLab's default Canvas embeds the current time in
+    /CreationDate and /ModDate and generates a random /ID, which
+    would make PDF output non-deterministic across calls. Passing
+    invariant=True disables both, which is required for
+    generate_pdf_report's byte-identical-output guarantee to hold.
+    """
+    kwargs["invariant"] = 1
+    return Canvas(*args, **kwargs)
 
 
 def generate_pdf_report(data: ReportData) -> bytes:
@@ -60,7 +76,7 @@ def generate_pdf_report(data: ReportData) -> bytes:
     story.extend(_build_findings_table(data.findings))
     story.extend(_build_remediation_section(data.findings))
 
-    doc.build(story, onFirstPage=_draw_footer, onLaterPages=_draw_footer)
+    doc.build(story, canvasmaker=_invariant_canvas)
     return buffer.getvalue()
 
 
@@ -70,7 +86,9 @@ def _build_doc_template(buffer: io.BytesIO) -> BaseDocTemplate:
         2 * cm, 2 * cm, A4[0] - 4 * cm, A4[1] - 4 * cm, id="main_frame"
     )
     doc = BaseDocTemplate(buffer, pagesize=A4)
-    doc.addPageTemplates([PageTemplate(id="report", frames=[frame])])
+    doc.addPageTemplates(
+        [PageTemplate(id="report", frames=[frame], onPage=_draw_footer)]
+    )
     return doc
 
 
@@ -128,8 +146,8 @@ def _build_findings_table(findings: list[FindingRow]) -> list:
             Spacer(1, 0.6 * cm),
         ]
 
-    header = ["Check Name", "Status", "Severity", "Description"]
-    rows = [header]
+    header: list[str | Paragraph] = ["Check Name", "Status", "Severity", "Description"]
+    rows: list[list[str | Paragraph]] = [header]
     for finding in findings:
         status = "Pass" if finding.passed else "Fail"
         rows.append(
@@ -167,7 +185,7 @@ def _build_remediation_section(findings: list[FindingRow]) -> list:
     if not failed:
         return []
 
-    elements = [Paragraph("Remediation", _STYLES["Heading2"])]
+    elements: list[Paragraph | Spacer] = [Paragraph("Remediation", _STYLES["Heading2"])]
     for finding in failed:
         elements.append(Paragraph(finding.check_name, _STYLES["Heading4"]))
         remediation_text = finding.remediation or "No remediation guidance available."

@@ -11,8 +11,6 @@ WORKDIR /app
 # Install system deps needed by some Python packages (psycopg2, etc.)
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-    gcc \
-    libpq-dev \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -41,19 +39,3 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 
 
-# Dockerfile.playwright
-FROM mcr.microsoft.com/playwright/python:v1.45.0-jammy
-
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY . .
-
-RUN groupadd --gid 1000 scraperuser \
-    && useradd --uid 1000 --gid scraperuser --create-home scraperuser \
-    && chown -R scraperuser:scraperuser /app
-
-USER scraperuser
-
-CMD ["python", "-m", "app.scraper.run"]

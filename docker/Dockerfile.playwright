@@ -1,0 +1,16 @@
+# 
+FROM mcr.microsoft.com/playwright/python:v1.45.0-jammy
+
+WORKDIR /app
+COPY requirements-scraper.txt .
+RUN pip install --no-cache-dir -r requirements-scraper.txt
+
+COPY . .
+
+RUN groupadd --gid 1000 scraperuser \
+    && useradd --uid 1000 --gid scraperuser --create-home scraperuser \
+    && chown -R scraperuser:scraperuser /app
+
+USER scraperuser
+
+CMD ["python", "-m", "app.scraper.run"]
