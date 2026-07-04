@@ -97,4 +97,4 @@ security_scanner/db/migrations/versions/*
 !security_scanner/db/migrations/versions/.gitkeep
 
 # GitHub Actions workflows
-.github/workflows/
+.github/
