@@ -1,0 +1,28 @@
+services:
+  app:
+    ports:
+      - "8000:8000"
+    environment:
+      ENVIRONMENT: "ci"
+      JWT_SECRET_KEY: "ci-only-secret-change-in-production"
+      TARGET_SCAN_ALLOW_PRIVATE_NETWORKS: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+      target-site:
+        condition: service_started
+
+  db:
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  target-site:
+    image: nginx:1.27-alpine
+    volumes:
+      - ../tests/fixtures/misconfigured_site/html:/usr/share/nginx/html:ro
+      - ../tests/fixtures/misconfigured_site/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "8099:80"

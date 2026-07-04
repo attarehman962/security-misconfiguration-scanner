@@ -13,21 +13,13 @@ from typing import Protocol
 from urllib.parse import urljoin
 
 import httpx
-from playwright.async_api import Error as PlaywrightError
-from playwright.async_api import TimeoutError as PlaywrightTimeoutError
-from playwright.async_api import async_playwright
 from sqlalchemy.orm import Session
 
 from security_scanner.crud.scraped_job import create_scraped_job, get_scraped_jobs
 from security_scanner.models.scraped_job import ScrapedJob
 from security_scanner.schemas.scrape import StructuredScrapeRequest
 from security_scanner.schemas.scraped_job import ScrapedJobCreate, ScrapedJobOut
-from security_scanner.scraper import (
-    DynamicPageScraper,
-    ScrapeConfig,
-    ScrapedItem,
-    ScrapeResult,
-)
+from security_scanner.scraper.models import ScrapeConfig, ScrapedItem, ScrapeResult
 
 logger = logging.getLogger(__name__)
 
@@ -221,7 +213,7 @@ class ScrapingService:
         dynamic_scraper: DynamicScraperLike | None = None,
         http_client: httpx.AsyncClient | None = None,
     ) -> None:
-        self._dynamic_scraper = dynamic_scraper or DynamicPageScraper()
+        self._dynamic_scraper = dynamic_scraper
         self._http_client = http_client
 
     async def scrape(
@@ -248,7 +240,7 @@ class ScrapingService:
         )
 
         if use_javascript:
-            return await self._dynamic_scraper.scrape(config)
+            return await self._get_dynamic_scraper().scrape(config)
 
         return await self._scrape_static(config=config, timeout_seconds=timeout_seconds)
 
@@ -415,6 +407,16 @@ class ScrapingService:
         timeout_ms = timeout_seconds * 1_000
 
         try:
+            from playwright.async_api import async_playwright
+            from playwright.async_api import Error as PlaywrightError
+            from playwright.async_api import TimeoutError as PlaywrightTimeoutError
+        except ImportError:
+            return failed_result(
+                url,
+                "JavaScript scraping requires the scraper image/dependencies.",
+            )
+
+        try:
             async with async_playwright() as playwright:
                 browser = await playwright.chromium.launch(
                     headless=True,
@@ -460,6 +462,22 @@ class ScrapingService:
 
         except PlaywrightError as error:
             return failed_result(url, f"Playwright failed while scraping: {error}")
+
+    def _get_dynamic_scraper(self) -> DynamicScraperLike:
+        """Create the Playwright scraper only when JavaScript scraping is used."""
+        if self._dynamic_scraper is None:
+            try:
+                from security_scanner.scraper.playwright_scraper import (
+                    DynamicPageScraper,
+                )
+            except ImportError as error:
+                raise ScrapingError(
+                    "JavaScript scraping requires the scraper image/dependencies."
+                ) from error
+
+            self._dynamic_scraper = DynamicPageScraper()
+
+        return self._dynamic_scraper
 
     async def _fetch_static_dom(
         self,

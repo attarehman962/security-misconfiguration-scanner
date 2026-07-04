@@ -1,0 +1,9 @@
+-r requirements.txt
+
+# Development and test dependencies
+mypy==2.1.0
+pypdf==6.14.2
+pytest==9.1.0
+pytest-asyncio==1.4.0
+pytest-cov==7.1.0
+ruff==0.15.20

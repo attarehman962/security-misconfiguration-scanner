@@ -16,7 +16,7 @@ from playwright.async_api import (
     TimeoutError as PlaywrightTimeoutError,
 )
 
-from security_scanner.scraper import ScrapeConfig, ScrapedItem, ScrapeResult
+from security_scanner.scraper.models import ScrapeConfig, ScrapedItem, ScrapeResult
 
 
 class LocatorLike(Protocol):

@@ -1,34 +1,51 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "security-misconfiguration-scanner"
 version = "0.1.0"
 description = "Python security misconfiguration scanner portfolio project."
+readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "alembic",
+    "alembic==1.18.4",
     "bcrypt==4.0.1",
-    "cryptography>=46.0.5",
-    "fastapi[standard]",
-    "httpx>=0.27.0",
+    "cryptography==49.0.0",
+    "fastapi[standard]==0.139.0",
+    "httpx==0.28.1",
     "passlib[bcrypt]==1.7.4",
-    "playwright>=1.60.0",
-    "pydantic[email]",
-    "pydantic-settings",
-    "python-jose[cryptography]",
-    "reportlab",
-    "SQLAlchemy",
-    "starlette<1.0",
+    "psycopg[binary]==3.3.4",
+    "pydantic[email]==2.13.4",
+    "pydantic-settings==2.14.1",
+    "python-jose[cryptography]==3.5.0",
+    "reportlab==5.0.0",
+    "sqlalchemy==2.0.49",
+    "uvicorn[standard]==0.49.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "mypy==2.1.0",
+    "pypdf==6.14.2",
+    "pytest==9.1.0",
+    "pytest-asyncio==1.4.0",
+    "pytest-cov==7.1.0",
+    "ruff==0.15.20",
+]
+
+scraper = [
+    "httpx==0.28.1",
+    "playwright==1.61.0",
+    "pydantic-settings==2.14.1",
+    "sqlalchemy==2.0.49",
 ]
 
 [project.scripts]
 security-scanner = "security_scanner.cli:main"
 
-[project.optional-dependencies]
-dev = [
-    "mypy==2.1.0",
-    "pytest==9.0.3",
-    "pytest-cov==7.1.0",
-    "ruff==0.15.15",
-]
+[tool.setuptools.packages.find]
+include = ["security_scanner*"]
 
 [tool.ruff]
 line-length = 88
