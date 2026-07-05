@@ -13,6 +13,18 @@ jobs:
     name: Test Python backend
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: security_scanner
+      POSTGRES_PORT: "55432"
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/security_scanner
+      SECRET_KEY: ci-only-secret-change-in-production
+      ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+      APP_PORT: "8000"
+      TARGET_SITE_PORT: "8099"
+      BASE_URL: http://127.0.0.1:8000
+      TARGET_SCAN_URL: http://target-site
 
     steps:
       - name: Check out repository
@@ -34,9 +46,6 @@ jobs:
           docker compose -f docker/docker-compose.yml -f docker-compose.ci.yml up -d --build app db target-site
 
       - name: Run pytest
-        env:
-          BASE_URL: http://127.0.0.1:8000
-          TARGET_SCAN_URL: http://target-site
         run: |
           pytest -q -m "not integration"
           pytest -q -m integration

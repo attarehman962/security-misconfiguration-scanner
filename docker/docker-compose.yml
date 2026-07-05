@@ -3,13 +3,13 @@ services:
     image: postgres:15
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-security_scanner}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-security_scanner}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -22,9 +22,9 @@ services:
       dockerfile: docker/Dockerfile     # then find Dockerfile here
     restart: unless-stopped
     environment:
-      DATABASE_URL: ${DATABASE_URL}
-      SECRET_KEY: ${SECRET_KEY}
-      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://postgres:postgres@db:5432/security_scanner}
+      SECRET_KEY: ${SECRET_KEY:-dev-only-secret-change-in-production}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
     ports:
       - "${APP_PORT:-8000}:8000"
     depends_on:
@@ -37,7 +37,7 @@ services:
       dockerfile: docker/Dockerfile.playwright    # then find Dockerfile here
     profiles: ["scraping"]
     environment:
-      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://postgres:postgres@db:5432/security_scanner}
     depends_on:
       db:
         condition: service_healthy
