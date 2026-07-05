@@ -42,9 +42,14 @@ FAILURE_STATUSES = {"failed", "failure", "error", "cancelled", "canceled"}
 
 
 def get_required_env(name: str, default: str | None = None) -> str:
-    """Read an environment variable or return a provided default."""
+    """Read an environment variable, return a default, or skip local integration."""
     value = os.getenv(name, default)
     if value is None or value.strip() == "":
+        if os.getenv("CI", "").lower() != "true":
+            pytest.skip(
+                f"Missing {name}; run scripts/run_integration.sh or set integration "
+                "environment variables."
+            )
         raise RuntimeError(f"Missing required environment variable: {name}")
     return value
 
@@ -261,7 +266,10 @@ def assert_pdf_contains_findings(
     )
 
 
-def assert_csv_has_rows(csv_text: str) -> None:
+def assert_csv_has_rows(
+    csv_text: str,
+    expected_titles: Iterable[str] = (),
+) -> None:
     """Assert that exported CSV text contains at least one data row."""
     csv_reader = csv.DictReader(io.StringIO(csv_text))
     rows = list(csv_reader)
@@ -274,6 +282,15 @@ def assert_csv_has_rows(csv_text: str) -> None:
         if any(str(value).strip() for value in row.values() if value is not None)
     ]
     assert non_empty_rows, "CSV rows are present but all values are empty."
+
+    missing_titles = [
+        title
+        for title in expected_titles
+        if title not in {str(row.get("title", "")).strip() for row in rows}
+    ]
+    assert not missing_titles, (
+        f"CSV missing expected saved titles: {missing_titles}. Rows: {rows}"
+    )
 
 
 def scrape_items_to_jobs(
@@ -316,6 +333,44 @@ def scrape_items_to_jobs(
     return jobs
 
 
+def extract_completed_scan_findings(
+    scan_payload: dict[str, Any],
+) -> list[dict[str, Any]]:
+    """Return completed scan findings or fail with scan result diagnostics."""
+    result = scan_payload.get("result")
+    assert isinstance(result, dict), (
+        f"Completed scan did not include a result object: {scan_payload}"
+    )
+
+    findings = result.get("findings")
+    assert isinstance(findings, list) and findings, (
+        f"Completed scan result had no findings: {result}"
+    )
+    assert all(isinstance(finding, dict) for finding in findings), (
+        f"Completed scan findings were not JSON objects: {findings}"
+    )
+
+    return findings
+
+
+def finding_terms(findings: Iterable[dict[str, Any]], limit: int = 3) -> list[str]:
+    """Return stable finding text snippets that should appear in the PDF."""
+    finding_list = list(findings)
+    terms: list[str] = []
+    for finding in finding_list:
+        for key in ("check_name", "description", "severity"):
+            value = finding.get(key)
+            if isinstance(value, str) and value.strip():
+                terms.append(value.strip())
+                break
+
+        if len(terms) >= limit:
+            break
+
+    assert terms, f"Could not derive PDF terms from findings: {finding_list}"
+    return terms
+
+
 @pytest.mark.integration
 @pytest.mark.slow
 async def test_full_authenticated_scan_report_and_scrape_flow() -> None:
@@ -323,10 +378,7 @@ async def test_full_authenticated_scan_report_and_scrape_flow() -> None:
     endpoints = ApiEndpoints()
 
     base_url = get_required_env("BASE_URL", "http://127.0.0.1:8000")
-    target_scan_url = get_required_env(
-        "TARGET_SCAN_URL",
-        "http://target-site",
-    )
+    target_scan_url = get_required_env("TARGET_SCAN_URL")
 
     timeout = httpx.Timeout(connect=10.0, read=30.0, write=10.0, pool=10.0)
 
@@ -394,14 +446,22 @@ async def test_full_authenticated_scan_report_and_scrape_flow() -> None:
 
         scan_payload = assert_json_object(create_scan_response, "Create scan")
         scan_id = extract_identifier(scan_payload, ("id", "scan_id"))
+        status_url = scan_payload.get("status_url")
+        assert isinstance(status_url, str) and status_url.strip(), (
+            f"Create scan response missing status_url: {scan_payload}"
+        )
+        assert status_url.endswith(f"/{scan_id}"), (
+            f"Create scan status_url does not match scan_id {scan_id}: {scan_payload}"
+        )
 
         completed_scan = await poll_until_completed(
             client=client,
-            status_path=endpoints.scan_detail(scan_id),
+            status_path=status_url,
             token=access_token,
         )
 
         assert extract_status(completed_scan) in SUCCESS_STATUSES
+        findings = extract_completed_scan_findings(completed_scan)
 
         report_response = await client.get(
             endpoints.scan_report_pdf(scan_id),
@@ -418,8 +478,8 @@ async def test_full_authenticated_scan_report_and_scrape_flow() -> None:
         assert_pdf_contains_findings(
             pdf_bytes=report_response.content,
             expected_terms=[
-                "severity",
-                "finding",
+                target_scan_url,
+                *finding_terms(findings),
             ],
         )
 
@@ -471,4 +531,7 @@ async def test_full_authenticated_scan_report_and_scrape_flow() -> None:
             or "application/octet-stream" in csv_content_type.lower()
         ), f"Unexpected CSV content type: {csv_content_type}"
 
-        assert_csv_has_rows(csv_response.text)
+        assert_csv_has_rows(
+            csv_response.text,
+            expected_titles=[job["title"] for job in scraped_jobs],
+        )

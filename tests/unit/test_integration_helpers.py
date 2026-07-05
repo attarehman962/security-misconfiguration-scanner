@@ -23,6 +23,28 @@ def test_extract_identifier_reports_available_keys() -> None:
         flow.extract_identifier(payload, ("id", "scan_id"))
 
 
+def test_get_required_env_skips_locally_when_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify unconfigured local integration runs skip instead of failing."""
+    monkeypatch.delenv("TARGET_SCAN_URL", raising=False)
+    monkeypatch.delenv("CI", raising=False)
+
+    with pytest.raises(pytest.skip.Exception, match="Missing TARGET_SCAN_URL"):
+        flow.get_required_env("TARGET_SCAN_URL")
+
+
+def test_get_required_env_fails_in_ci_when_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify CI still fails loudly when required integration env is missing."""
+    monkeypatch.delenv("TARGET_SCAN_URL", raising=False)
+    monkeypatch.setenv("CI", "true")
+
+    with pytest.raises(RuntimeError, match="TARGET_SCAN_URL"):
+        flow.get_required_env("TARGET_SCAN_URL")
+
+
 @pytest.mark.asyncio
 async def test_wait_for_api_health_times_out_with_last_http_error(
     monkeypatch: pytest.MonkeyPatch,
@@ -90,3 +112,32 @@ def test_assert_csv_has_rows_rejects_header_only_csv() -> None:
 
     with pytest.raises(AssertionError, match="no data rows"):
         flow.assert_csv_has_rows(csv_text)
+
+
+def test_assert_csv_has_rows_rejects_missing_expected_titles() -> None:
+    """Verify CSV export validation checks rows from the current test flow."""
+    csv_text = "id,source_url,title\n1,https://example.test,Engineer\n"
+
+    with pytest.raises(AssertionError, match="missing expected saved titles"):
+        flow.assert_csv_has_rows(csv_text, expected_titles=["Architect"])
+
+
+def test_extract_completed_scan_findings_requires_result_findings() -> None:
+    """Verify completed scan validation catches empty result payloads."""
+    payload = {"scan_id": 42, "status": "completed", "result": {"findings": []}}
+
+    with pytest.raises(AssertionError, match="no findings"):
+        flow.extract_completed_scan_findings(payload)
+
+
+def test_finding_terms_prefers_stable_finding_text() -> None:
+    """Verify PDF terms come from actual finding details, not generic headings."""
+    findings = [
+        {
+            "check_name": "missing_security_headers",
+            "description": "Missing Content-Security-Policy header.",
+            "severity": "high",
+        }
+    ]
+
+    assert flow.finding_terms(findings) == ["missing_security_headers"]
