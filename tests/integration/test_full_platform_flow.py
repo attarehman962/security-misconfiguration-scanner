@@ -338,7 +338,7 @@ async def test_full_authenticated_scan_report_and_scrape_flow() -> None:
         await wait_for_api_health(client, endpoints.health)
 
         unique_suffix = uuid.uuid4().hex
-        email = f"atta.day21.{unique_suffix}@example.test"
+        email = f"atta.day21.{unique_suffix}@example.com"
         password = "StrongPassword123!"
 
         register_response = await client.post(
