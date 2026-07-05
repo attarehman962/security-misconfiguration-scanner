@@ -1,4 +1,4 @@
-from typing import Protocol
+from typing import Protocol, cast
 
 import httpx
 from pytest import MonkeyPatch
@@ -28,7 +28,7 @@ def register_user(
         json={"email": email, "password": password},
     )
     assert response.status_code == 201
-    return response.json()
+    return cast(dict[str, object], response.json())
 
 
 def login_user(

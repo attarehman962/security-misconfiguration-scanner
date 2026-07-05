@@ -10,7 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from security_scanner.db import Base
 
 if TYPE_CHECKING:
-    from security_scanner.models.finding import Finding
+    from security_scanner.models.finding import FindingRecord
 
 
 class ScanRecordStatus(StrEnum):
@@ -87,8 +87,8 @@ class ScanRecord(Base):
     )
 
     # ── Relationships ─────────────────────────────────────────────────────────
-    findings: Mapped[list[Finding]] = relationship(
-        "Finding",
+    findings: Mapped[list[FindingRecord]] = relationship(
+        "FindingRecord",
         back_populates="scan",
         cascade="all, delete-orphan",
         passive_deletes=True,

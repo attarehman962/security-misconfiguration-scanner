@@ -124,6 +124,20 @@ Run all tests:
 pytest
 ```
 
+Run the production-style integration flow against Docker Compose:
+
+```bash
+scripts/run_integration.sh
+```
+
+The integration script starts PostgreSQL, the FastAPI app, and the deterministic
+nginx target site used by scanner/scraper tests.
+It defaults PostgreSQL to host port `55432` to avoid colliding with local
+PostgreSQL on `5432`; override `APP_PORT`, `POSTGRES_PORT`, or
+`TARGET_SITE_PORT` when your machine or CI runner needs different ports.
+Set `SKIP_DOCKER_BUILD=true` to reuse already-built images during local reruns
+when Docker Hub is temporarily unavailable.
+
 Run the scraping and scraped-results tests only:
 
 ```bash

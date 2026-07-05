@@ -13,6 +13,7 @@ RiskLevel: TypeAlias = Literal["none", "low", "medium", "high", "critical"]
 class Severity(StrEnum):
     """Supported finding severity levels."""
 
+    CRITICAL = "Critical"
     INFO = "Info"
     LOW = "Low"
     MEDIUM = "Medium"

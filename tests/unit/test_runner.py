@@ -349,16 +349,16 @@ def test_build_ssl_finding_handles_ssl_lookup_error(
 
 
 def test_calculate_total_score_never_goes_below_zero() -> None:
-    # Six high findings would subtract more than 100, so this guards the floor.
+    # Eleven critical findings exceed 100 risk points, so this guards the floor.
     findings = [
         Finding(
             check_name=f"check-{index}",
             status=Status.FAIL,
-            severity=Severity.HIGH,
+            severity=Severity.CRITICAL,
             description="failed",
             remediation="fix it",
         )
-        for index in range(6)
+        for index in range(11)
     ]
 
     assert runner._calculate_total_score(findings) == 0

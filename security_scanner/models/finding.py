@@ -13,8 +13,8 @@ if TYPE_CHECKING:
     from security_scanner.models.scan_record import ScanRecord
 
 
-class Finding(Base):
-    """Represents the result of one security check during a scan."""
+class FindingRecord(Base):
+    """Persisted database row for one security check finding."""
 
     __tablename__ = "findings"
 
@@ -29,5 +29,3 @@ class Finding(Base):
     remediation: Mapped[str] = mapped_column(Text, nullable=False)
 
     scan: Mapped[ScanRecord] = relationship("ScanRecord", back_populates="findings")
-    # Inside your existing Finding model — adjust to your actual base class/style
-    remediation: Mapped[str] = mapped_column(Text, nullable=False)

@@ -9,7 +9,6 @@ from security_scanner.db import get_db
 from security_scanner.models import User
 from security_scanner.repositories import DatabaseOperationError, get_user_by_id
 from security_scanner.scanner import SecurityMisconfigurationScanner
-from security_scanner.services import ScanService
 from security_scanner.services.scan_job_store import InMemoryScanJobStore
 from security_scanner.services.scan_runner import ScannerProtocol
 
@@ -25,11 +24,6 @@ async def get_scan_job_store() -> InMemoryScanJobStore:
 async def get_scanner() -> ScannerProtocol:
     """Return the real scanner implementation."""
     return SecurityMisconfigurationScanner()
-
-
-async def get_scan_service() -> ScanService:
-    """Provide the scan service for request handlers."""
-    return ScanService()
 
 
 async def get_current_user(

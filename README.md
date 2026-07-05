@@ -114,10 +114,10 @@ Common routes:
 
 ```text
 GET  /api/v1/health
-POST /api/v1/scan
 POST /api/v1/scans
 GET  /api/v1/scans
 GET  /api/v1/scans/{scan_id}
+GET  /api/v1/scans/{scan_id}/report
 POST /api/v1/auth/register
 POST /api/v1/auth/login
 GET  /api/v1/auth/me
@@ -130,9 +130,10 @@ GET  /api/v1/scrape/results/export
 Start a scan:
 
 ```bash
-curl -X POST http://127.0.0.1:8000/api/v1/scan \
+curl -X POST http://127.0.0.1:8000/api/v1/scans \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"url": "https://example.com"}'
+  -d '{"target_url": "https://example.com"}'
 ```
 
 Run a live scrape without storing the result:
@@ -204,7 +205,6 @@ security_scanner/services/scraping_service.py  live scraping and saved-job servi
 security_scanner/crud/scraped_job.py           database insert/query helpers
 security_scanner/models/scraped_job.py         SQLAlchemy table model
 security_scanner/schemas/scraped_job.py        Pydantic request/response models
-learn/                                         learning notes and LaTeX data-flow guides
 ```
 
 ## Tests And Quality
@@ -236,9 +236,9 @@ security_scanner/
   core/            Settings, logging, security helpers, exception handling
   crud/            Database-focused insert/query helpers
   db/              SQLAlchemy session setup and Alembic migrations
-  models/          Domain and database models
+  models/          Domain models and SQLAlchemy records
   repositories/    User repository helpers
-  reports/         JSON and table formatters/exporters
+  reporting/       PDF, JSON, table, and CSV helpers
   scanner/         Scanner runner, HTTP client, and checks
   schemas/         Pydantic request and response schemas
   scraper/         Playwright scraper support and scrape data classes
@@ -255,8 +255,4 @@ docs/
   api.md
   architecture.md
   setup.md
-
-learn/
-  security_scanner_notes.tex
-  url_to_results_streamline.tex
 ```

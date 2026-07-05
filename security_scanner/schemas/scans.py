@@ -23,6 +23,7 @@ STATUS_RESPONSE_BY_MODEL: dict[Status, FindingStatus] = {
 }
 
 SEVERITY_RESPONSE_BY_MODEL: dict[Severity, FindingSeverity] = {
+    Severity.CRITICAL: "critical",
     Severity.HIGH: "high",
     Severity.MEDIUM: "medium",
     Severity.LOW: "low",

@@ -14,17 +14,18 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Protocol
+from typing import Protocol, TypeVar
 
+from security_scanner.models.scan import Severity
 
-class Severity(StrEnum):
-    """Severity levels a single check result can have."""
-
-    CRITICAL = "Critical"
-    HIGH = "High"
-    MEDIUM = "Medium"
-    LOW = "Low"
-    INFO = "Info"
+__all__ = [
+    "RiskLevel",
+    "ScoredFinding",
+    "Severity",
+    "calculate_risk_score",
+    "determine_risk_level",
+    "sort_findings_by_severity",
+]
 
 
 class RiskLevel(StrEnum):
@@ -82,6 +83,9 @@ class ScoredFinding:
     passed: bool
 
 
+FindingT = TypeVar("FindingT", bound=HasSeverityAndStatus)
+
+
 def calculate_risk_score(findings: Sequence[HasSeverityAndStatus]) -> int:
     """Sum severity weights for every failed finding.
 
@@ -125,8 +129,8 @@ def determine_risk_level(score: int) -> RiskLevel:
 
 
 def sort_findings_by_severity(
-    findings: Sequence[HasSeverityAndStatus],
-) -> list[HasSeverityAndStatus]:
+    findings: Sequence[FindingT],
+) -> list[FindingT]:
     """Sort findings Critical-first using the explicit rank table.
 
     Stable sort: findings of equal severity keep their original

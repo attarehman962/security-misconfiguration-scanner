@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
 
+from security_scanner.models.scan import Status
 from security_scanner.models.scan_record import ScanRecord
 
 
@@ -62,7 +63,7 @@ def build_report_data(
     findings = [
         FindingRow(
             check_name=f.check_name,
-            passed=f.passed,
+            passed=f.status is Status.PASS,
             severity=Severity(f.severity.value),
             description=f.description,
             remediation=f.remediation,

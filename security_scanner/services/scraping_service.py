@@ -407,9 +407,15 @@ class ScrapingService:
         timeout_ms = timeout_seconds * 1_000
 
         try:
-            from playwright.async_api import async_playwright
-            from playwright.async_api import Error as PlaywrightError
-            from playwright.async_api import TimeoutError as PlaywrightTimeoutError
+            from playwright.async_api import (
+                Error as PlaywrightError,
+            )
+            from playwright.async_api import (
+                TimeoutError as PlaywrightTimeoutError,
+            )
+            from playwright.async_api import (
+                async_playwright,
+            )
         except ImportError:
             return failed_result(
                 url,

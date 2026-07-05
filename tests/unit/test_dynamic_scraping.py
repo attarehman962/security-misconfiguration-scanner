@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import csv
 import json
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +18,7 @@ from security_scanner.scraper import (
     extract_item_from_card,
     normalize_source_url,
 )
+from security_scanner.scraper.playwright_scraper import LocatorLike
 
 
 class FakeLocator:
@@ -35,11 +37,11 @@ class FakeLocator:
         self._exists = exists
 
     @property
-    def first(self) -> FakeLocator:
+    def first(self) -> LocatorLike:
         """Return self to mimic Playwright's first locator."""
         return self
 
-    def locator(self, selector: str) -> FakeLocator:
+    def locator(self, selector: str) -> LocatorLike:
         """Return a child fake locator by selector."""
         return self._children.get(selector, FakeLocator(exists=False))
 
@@ -47,11 +49,20 @@ class FakeLocator:
         """Return one match when this fake element exists."""
         return 1 if self._exists else 0
 
-    async def inner_text(self, timeout: float | None = None) -> str:
+    async def inner_text(
+        self,
+        *,
+        timeout: float | timedelta | None = None,
+    ) -> str:
         """Return fake visible text."""
         return self._text or ""
 
-    async def get_attribute(self, name: str) -> str | None:
+    async def get_attribute(
+        self,
+        name: str,
+        *,
+        timeout: float | timedelta | None = None,
+    ) -> str | None:
         """Return a fake HTML attribute."""
         return self._attributes.get(name)
 

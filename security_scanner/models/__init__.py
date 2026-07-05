@@ -1,8 +1,6 @@
-from security_scanner.models.finding import Finding
+from security_scanner.models.finding import FindingRecord
 from security_scanner.models.scan import (
-    Finding as ScanFinding,
-)
-from security_scanner.models.scan import (
+    Finding,
     ScanResult,
     Severity,
     Status,
@@ -14,7 +12,7 @@ from security_scanner.models.user import User
 
 __all__ = [
     "Finding",
-    "ScanFinding",
+    "FindingRecord",
     "ScanResult",
     "Severity",
     "Status",

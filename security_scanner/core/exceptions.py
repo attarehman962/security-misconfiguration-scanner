@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from starlette.types import ExceptionHandler
 
 from security_scanner.schemas import ErrorResponse, FieldValidationError
-from security_scanner.services import (
+from security_scanner.services.exceptions import (
     InvalidScanTargetError,
     ScanNotFoundError,
 )
@@ -56,7 +56,7 @@ async def validation_exception_handler(
             field=_field_name(tuple(error["loc"])),
             message=str(error["msg"]),
             type=str(error["type"]),
-        ).model_dump()
+        )
         for error in exc.errors()
     ]
 

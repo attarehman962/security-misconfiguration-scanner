@@ -1,6 +1,7 @@
 import asyncio
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
+from typing import Any, cast
 
 import httpx
 from fastapi import FastAPI
@@ -87,12 +88,16 @@ def request(
     """Send a request directly to the ASGI app."""
 
     async def send_request() -> httpx.Response:
-        transport = httpx.ASGITransport(app=app, raise_app_exceptions=False)
+        transport = httpx.ASGITransport(
+            app=cast(Any, app),
+            raise_app_exceptions=False,
+        )
         async with httpx.AsyncClient(
             transport=transport,
             base_url="http://testserver",
         ) as client:
-            return await client.request(method, path, **kwargs)
+            request_kwargs = cast(dict[str, Any], kwargs)
+            return await client.request(method, path, **request_kwargs)
 
     return asyncio.run(send_request())
 

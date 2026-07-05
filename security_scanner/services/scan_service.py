@@ -1,6 +1,7 @@
 """Service layer for persisted scan workflows."""
 
 import logging
+from typing import cast
 
 from fastapi import BackgroundTasks
 from sqlalchemy.exc import SQLAlchemyError
@@ -11,7 +12,8 @@ from security_scanner.crud.scan import (
     get_scan_for_user,
     get_scans_for_user,
 )
-from security_scanner.models.finding import Finding
+from security_scanner.models.finding import FindingRecord
+from security_scanner.models.scan import RiskLevel as DomainRiskLevel
 from security_scanner.models.scan import Severity, Status
 from security_scanner.models.scan_record import ScanRecord
 from security_scanner.schemas import (
@@ -121,15 +123,20 @@ def _scan_result_response(scan: ScanRecord) -> ScanResultResponse | None:
     if scan.completed_at is None:
         return None
 
+    risk_score = scan.risk_score
+    total_score = max(0, 100 - int(risk_score or 0))
+
     return ScanResultResponse(
         url=scan.url,
         timestamp=scan.completed_at,
-        total_score=0,
+        total_score=total_score,
+        risk_score=risk_score,
+        risk_level=cast(DomainRiskLevel | None, scan.risk_level),
         findings=[_finding_to_response(finding) for finding in scan.findings],
     )
 
 
-def _finding_to_response(finding: Finding) -> FindingResponse:
+def _finding_to_response(finding: FindingRecord) -> FindingResponse:
     """Convert a persisted finding into the public response model."""
     status_value = finding.status
     severity_value = finding.severity

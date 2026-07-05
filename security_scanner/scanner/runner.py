@@ -1,11 +1,10 @@
-# security_scanner/services/scan_runner.py
-"""Scan runner — executes the scanner pipeline and persists results.
+# security_scanner/scanner/runner.py
+"""Scan runner — executes the scanner pipeline and returns domain results.
 
 This is the single file that:
 1. Runs the full scanner pipeline (fetch, headers, exposure, SSL)
 2. Uses shared scoring.py for consistent risk scores
-3. Persists everything to PostgreSQL via crud/scan.py
-4. Never leaves a scan stuck in PENDING or RUNNING on failure
+3. Keeps persistence concerns out of the scanner package
 """
 
 from __future__ import annotations
@@ -13,38 +12,29 @@ from __future__ import annotations
 import logging
 from argparse import ArgumentTypeError
 from datetime import UTC, datetime
+from typing import cast
 from urllib.parse import urlsplit
 
-from sqlalchemy import select
-from sqlalchemy.orm import Session
-
 from security_scanner.core import InvalidURLError
-from security_scanner.crud.scan import (
-    save_findings,
-    update_scan_status,
-)
 from security_scanner.models.scan import (
     Finding as DomainFinding,  # renamed — avoids clash with ORM Finding
+)
+from security_scanner.models.scan import (
+    RiskLevel as DomainRiskLevel,
 )
 from security_scanner.models.scan import (
     ScanResult,
     Severity,
     Status,
 )
-from security_scanner.models.scan_record import ScanRecord, ScanRecordStatus
 from security_scanner.scanner.checks import run_exposure_checks, run_header_checks
 from security_scanner.scanner.http_client import FetchResult, fetch_url
-from security_scanner.scanner.remediation import (
-    RemediationNotFoundError,
-    get_remediation,
-)
 from security_scanner.scanner.scoring import (
-    Severity as ScoringSeverity,
+    RiskLevel as ScoringRiskLevel,
 )
 from security_scanner.scanner.scoring import (
     calculate_risk_score,
     determine_risk_level,
-    sort_findings_by_severity,
 )
 from security_scanner.utils import (
     SslCertificateError,
@@ -85,10 +75,8 @@ class _ScoringAdapter:
         self.original: DomainFinding = finding
 
     @property
-    def severity(self) -> ScoringSeverity:
-        # scoring.py has its own Severity enum with identical values
-        # so we convert by value string e.g. "High" -> ScoringSeverity.HIGH
-        return ScoringSeverity(self.original.severity.value)
+    def severity(self) -> Severity:
+        return self.original.severity
 
     @property
     def passed(self) -> bool:
@@ -117,138 +105,12 @@ def run_scan(url: str) -> ScanResult:
         raise InvalidURLError(str(error)) from error
 
     logger.debug("Validated scan URL url=%s", validated_url)
-    return _run_full_scan(validated_url)
+    return run_full_scan(validated_url)
 
 
 def run_full_scan(url: str) -> ScanResult:
     """Backward-compatible public wrapper around the full scan pipeline."""
-    return run_scan(url)
-
-
-def run_scan_background(
-    scan_id: int,
-    target_url: str,
-    db: Session,
-) -> None:
-    """Execute the scanner and persist all results for a background job.
-
-    The session is owned by the caller — this function never closes it.
-    The caller (background task) is responsible for closing the session
-    in a finally block.
-
-    Args:
-        scan_id: ID of the ScanRecord row already created by the route.
-        target_url: Validated URL to scan.
-        db: SQLAlchemy session owned by the caller.
-    """
-    try:
-        # ── Mark scan as running ──────────────────────────────────────────────
-        update_scan_status(db, scan_id, ScanRecordStatus.RUNNING)
-        logger.info("Scan started scan_id=%s url=%s", scan_id, target_url)
-
-        # ── Run the full pipeline ─────────────────────────────────────────────
-        scan_result = _run_full_scan(target_url)
-
-        # ── Wrap each finding in scoring adapter ──────────────────────────────
-        # Adapter exposes .severity and .passed that scoring.py Protocol needs
-        # while keeping .original accessible for CRUD serialization below.
-        adapters = [_ScoringAdapter(f) for f in scan_result.findings]
-
-        # ── Compute risk using shared scoring module ───────────────────────────
-        # Replaces the old local _calculate_total_score() — CLI and API now
-        # always produce identical numbers from the same function.
-        risk_score = calculate_risk_score(adapters)
-        risk_level = determine_risk_level(risk_score)
-
-        # ── Sort findings Critical-first ───────────────────────────────────────
-        sorted_adapters = sort_findings_by_severity(adapters)
-
-        # ── Build finding dicts for CRUD layer ────────────────────────────────
-        # Access .original (not ._finding) — public attribute, mypy-safe.
-        findings_as_dicts = []
-        for adapter in sorted_adapters:
-            # _ScoringAdapter stores original as public attribute
-            original = adapter.original  # type: ignore[union-attr]
-
-            # Look up remediation from central registry.
-            # Fall back to embedded text when check is not yet registered
-            # so existing checks that embed remediation still work.
-            try:
-                remediation_text = get_remediation(original.check_name)
-            except RemediationNotFoundError:
-                logger.warning(
-                    "No remediation mapping for check_name=%s scan_id=%s — "
-                    "using embedded text",
-                    original.check_name,
-                    scan_id,
-                )
-                remediation_text = original.remediation
-
-            findings_as_dicts.append({
-                "check_name": original.check_name,
-                "severity": original.severity,
-                "status": original.status,
-                "description": original.description,
-                "remediation": remediation_text,
-            })
-
-        # ── Persist findings ──────────────────────────────────────────────────
-        save_findings(db, scan_id, findings_as_dicts)
-
-        # ── Update scan record with risk score and level ──────────────────────
-        scan_record = db.scalars(
-            select(ScanRecord).where(ScanRecord.id == scan_id)
-        ).first()
-
-        if scan_record is not None:
-            scan_record.risk_score = float(risk_score)
-            scan_record.risk_level = risk_level.value
-            db.commit()
-        else:
-            logger.error(
-                "ScanRecord not found when saving risk score scan_id=%s",
-                scan_id,
-            )
-
-        # ── Mark complete ─────────────────────────────────────────────────────
-        update_scan_status(db, scan_id, ScanRecordStatus.COMPLETED)
-
-        logger.info(
-            "Scan completed scan_id=%s url=%s risk_score=%s risk_level=%s",
-            scan_id,
-            target_url,
-            risk_score,
-            risk_level.value,
-        )
-
-    except ConnectionError as exc:
-        # Network errors — target was unreachable
-        logger.warning(
-            "Scan could not reach target scan_id=%s url=%s error=%s",
-            scan_id,
-            target_url,
-            exc,
-        )
-        update_scan_status(
-            db,
-            scan_id,
-            ScanRecordStatus.FAILED,
-            error_message=str(exc),
-        )
-
-    except Exception as exc:
-        # Last-resort guard — status is NEVER left stuck on RUNNING
-        logger.exception(
-            "Unexpected error during scan scan_id=%s url=%s",
-            scan_id,
-            target_url,
-        )
-        update_scan_status(
-            db,
-            scan_id,
-            ScanRecordStatus.FAILED,
-            error_message=str(exc),
-        )
+    return _run_full_scan(url)
 
 
 # ── Internal pipeline ─────────────────────────────────────────────────────────
@@ -344,13 +206,16 @@ def _run_full_scan(url: str) -> ScanResult:
     # Replaces old local _calculate_total_score() penalty system.
     # Both CLI and background API jobs now use identical scoring logic.
     adapters = [_ScoringAdapter(f) for f in findings]
-    total_score = calculate_risk_score(adapters)
+    risk_score = calculate_risk_score(adapters)
+    risk_level = determine_risk_level(risk_score)
+    total_score = _calculate_total_score(findings)
 
     logger.info(
-        "Full scan completed url=%s findings=%s total_score=%s",
+        "Full scan completed url=%s findings=%s total_score=%s risk_score=%s",
         url,
         len(findings),
         total_score,
+        risk_score,
     )
 
     return ScanResult(
@@ -358,7 +223,23 @@ def _run_full_scan(url: str) -> ScanResult:
         timestamp=datetime.now(UTC),
         findings=findings,
         total_score=total_score,
+        risk_score=float(risk_score),
+        risk_level=_risk_level_value(risk_level),
     )
+
+
+def _calculate_total_score(findings: list[DomainFinding]) -> int:
+    """Convert failed-finding risk into a user-facing 0-100 security score."""
+    adapters = [_ScoringAdapter(finding) for finding in findings]
+    risk_score = calculate_risk_score(adapters)
+    return max(0, 100 - risk_score)
+
+
+def _risk_level_value(risk_level: ScoringRiskLevel) -> DomainRiskLevel:
+    """Convert scoring risk labels to the lowercase API/report vocabulary."""
+    if risk_level is ScoringRiskLevel.CLEAN:
+        return "none"
+    return cast(DomainRiskLevel, risk_level.value.lower())
 
 
 # ── Finding builders ──────────────────────────────────────────────────────────

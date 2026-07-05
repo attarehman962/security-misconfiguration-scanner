@@ -3,20 +3,13 @@ from __future__ import annotations
 import re
 from datetime import timedelta
 from pathlib import Path
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 from urllib.parse import urljoin
 
-from playwright.async_api import (
-    Browser,
-    Page,
-    async_playwright,
-)
-from playwright.async_api import Error as PlaywrightError
-from playwright.async_api import (
-    TimeoutError as PlaywrightTimeoutError,
-)
-
 from security_scanner.scraper.models import ScrapeConfig, ScrapedItem, ScrapeResult
+
+if TYPE_CHECKING:
+    from playwright.async_api import Browser, Page
 
 
 class LocatorLike(Protocol):
@@ -153,6 +146,24 @@ class DynamicPageScraper:
                 error_message=f"Could not normalize source URL: {error}",
             )
 
+        try:
+            from playwright.async_api import (
+                Error as PlaywrightError,
+            )
+            from playwright.async_api import (
+                TimeoutError as PlaywrightTimeoutError,
+            )
+            from playwright.async_api import (
+                async_playwright,
+            )
+        except ImportError:
+            return ScrapeResult(
+                source_url=normalized_url,
+                success=False,
+                items=[],
+                error_message="Playwright is not installed in this runtime.",
+            )
+
         async with async_playwright() as playwright:
             browser: Browser | None = None
             page: Page | None = None
@@ -257,6 +268,8 @@ class DynamicPageScraper:
         reason: str,
     ) -> str | None:
         """Save a screenshot for failed scraping runs."""
+        from playwright.async_api import Error as PlaywrightError
+
         try:
             config.screenshot_dir.mkdir(parents=True, exist_ok=True)
             safe_reason = re.sub(r"[^a-zA-Z0-9_-]+", "-", reason).strip("-")

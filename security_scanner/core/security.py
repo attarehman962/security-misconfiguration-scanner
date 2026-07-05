@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from typing import cast
 
 from jose import ExpiredSignatureError, JWTError, jwt
 from passlib.context import CryptContext
@@ -14,13 +15,13 @@ class TokenDecodeError(Exception):
 
 def hash_password(password: str) -> str:
     """Hash a plaintext password using bcrypt."""
-    return pwd_context.hash(password)
+    return cast(str, pwd_context.hash(password))
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a plaintext password against a stored bcrypt hash."""
     try:
-        return pwd_context.verify(plain_password, hashed_password)
+        return cast(bool, pwd_context.verify(plain_password, hashed_password))
     except ValueError:
         return False
 
@@ -42,10 +43,13 @@ def create_access_token(
         "exp": expire_at,
     }
 
-    return jwt.encode(
-        token_payload,
-        settings.jwt_secret_key,
-        algorithm=settings.jwt_algorithm,
+    return cast(
+        str,
+        jwt.encode(
+            token_payload,
+            settings.jwt_secret_key,
+            algorithm=settings.jwt_algorithm,
+        ),
     )
 
 
@@ -54,10 +58,13 @@ def decode_access_token(token: str) -> str:
     settings = get_settings()
 
     try:
-        payload = jwt.decode(
-            token,
-            settings.jwt_secret_key,
-            algorithms=[settings.jwt_algorithm],
+        payload = cast(
+            dict[str, object],
+            jwt.decode(
+                token,
+                settings.jwt_secret_key,
+                algorithms=[settings.jwt_algorithm],
+            ),
         )
     except ExpiredSignatureError as exc:
         raise TokenDecodeError("Token has expired.") from exc

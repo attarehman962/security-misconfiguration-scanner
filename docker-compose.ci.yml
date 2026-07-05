@@ -1,7 +1,5 @@
 services:
   app:
-    ports:
-      - "8000:8000"
     environment:
       ENVIRONMENT: "ci"
       JWT_SECRET_KEY: "ci-only-secret-change-in-production"
@@ -25,4 +23,4 @@ services:
       - ../tests/fixtures/misconfigured_site/html:/usr/share/nginx/html:ro
       - ../tests/fixtures/misconfigured_site/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     ports:
-      - "8099:80"
+      - "${TARGET_SITE_PORT:-8099}:80"

@@ -1,13 +1,15 @@
 """Database access helpers for persisted scans."""
 
 import logging
+from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
+from typing import cast
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from security_scanner.models.finding import Finding
-from security_scanner.models.scan import Status
+from security_scanner.models.finding import FindingRecord
+from security_scanner.models.scan import Severity, Status
 from security_scanner.models.scan_record import ScanRecord, ScanRecordStatus
 
 logger = logging.getLogger(__name__)
@@ -50,20 +52,42 @@ def get_scan_for_user(db: Session, scan_id: int, user_id: int) -> ScanRecord | N
     return db.scalars(statement).first()
 
 
-def save_findings(db: Session, scan_id: int, findings: list[dict]) -> None:
+def save_findings(
+    db: Session,
+    scan_id: int,
+    findings: Sequence[Mapping[str, object]],
+) -> None:
     """Persist a list of finding dicts for a given scan."""
     finding_rows = [
-        Finding(
+        FindingRecord(
             scan_id=scan_id,
-            check_name=finding["check_name"],
-            severity=finding["severity"],
-            status=finding.get("status", Status.FAIL),
-            description=finding["description"],
-            remediation=finding.get("remediation", ""),
+            check_name=cast(str, finding["check_name"]),
+            severity=cast(Severity, finding["severity"]),
+            status=cast(Status, finding.get("status", Status.FAIL)),
+            description=cast(str, finding["description"]),
+            remediation=cast(str, finding.get("remediation", "")),
         )
         for finding in findings
     ]
     db.add_all(finding_rows)
+    db.commit()
+
+
+def update_scan_result_metadata(
+    db: Session,
+    scan_id: int,
+    risk_score: float | None,
+    risk_level: str | None,
+) -> None:
+    """Persist computed scan result metadata after findings are saved."""
+    statement = select(ScanRecord).where(ScanRecord.id == scan_id)
+    scan = db.scalars(statement).first()
+    if scan is None:
+        logger.error("Attempted to update metadata for nonexistent scan_id=%s", scan_id)
+        return
+
+    scan.risk_score = risk_score
+    scan.risk_level = risk_level
     db.commit()
 
 

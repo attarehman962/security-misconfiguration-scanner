@@ -108,20 +108,8 @@ Returns the authenticated user.
 
 ## Scanning
 
-The scanner has both immediate and job-style endpoints.
-
-### `POST /api/v1/scan`
-
-Starts a scan for a URL and returns scan output according to the route contract
-in `security_scanner/api/v1/routes/scans.py`.
-
-Example:
-
-```bash
-curl -X POST http://127.0.0.1:8000/api/v1/scan \
-  -H "Content-Type: application/json" \
-  -d '{"url": "https://example.com"}'
-```
+Scans are authenticated background jobs. The HTTP route creates a persisted
+`ScanRecord`, queues scanner execution, and returns a pollable status URL.
 
 ### `POST /api/v1/scans`
 
@@ -139,9 +127,9 @@ Typical accepted response:
 
 ```json
 {
-  "scan_id": "scan_...",
+  "scan_id": 1,
   "status": "pending",
-  "status_url": "/api/v1/scans/scan_..."
+  "status_url": "/api/v1/scans/1"
 }
 ```
 
@@ -152,6 +140,11 @@ Lists scan jobs.
 ### `GET /api/v1/scans/{scan_id}`
 
 Returns one scan job and, when complete, its result.
+
+### `GET /api/v1/scans/{scan_id}/report`
+
+Returns a PDF report for a completed scan. The response content type is
+`application/pdf`.
 
 ## Live Scraping
 

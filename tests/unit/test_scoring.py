@@ -157,7 +157,7 @@ def test_sort_is_critical_first_and_stable() -> None:
 
 def test_sort_empty_list_returns_empty() -> None:
     """Sorting an empty list should return an empty list without crashing."""
-    result = sort_findings_by_severity([])
+    result: list[ScoredFinding] = sort_findings_by_severity([])
     assert result == []
 
 
@@ -166,7 +166,7 @@ def test_sort_single_finding_unchanged() -> None:
     findings = [make_finding("only", Severity.HIGH, passed=False)]
     result = sort_findings_by_severity(findings)
     assert len(result) == 1
-    assert result[0].check_id == "only"  # type: ignore[union-attr]
+    assert result[0].check_id == "only"
 
 
 def test_sort_all_same_severity_preserves_order() -> None:
@@ -179,7 +179,7 @@ def test_sort_all_same_severity_preserves_order() -> None:
     result = sort_findings_by_severity(findings)
 
     # stable sort — original order preserved for equal severity
-    assert [f.check_id for f in result] == ["first", "second", "third"]  # type: ignore[union-attr]
+    assert [f.check_id for f in result] == ["first", "second", "third"]
 
 
 def test_sort_full_severity_order() -> None:
@@ -193,8 +193,12 @@ def test_sort_full_severity_order() -> None:
     ]
     result = sort_findings_by_severity(findings)
 
-    assert [f.check_id for f in result] == [  # type: ignore[union-attr]
-        "critical", "high", "medium", "low", "info"
+    assert [f.check_id for f in result] == [
+        "critical",
+        "high",
+        "medium",
+        "low",
+        "info",
     ]
 
 

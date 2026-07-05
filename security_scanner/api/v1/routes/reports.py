@@ -4,8 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
-from security_scanner.api.v1.dependencies import get_current_user, get_db
+from security_scanner.api.v1.dependencies import get_current_user
 from security_scanner.crud.scan import get_scan_for_user
+from security_scanner.db import get_db
 from security_scanner.models import User
 from security_scanner.models.scan_record import ScanRecordStatus
 from security_scanner.reporting.pdf_generator import generate_pdf_report

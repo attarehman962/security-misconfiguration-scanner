@@ -2,6 +2,8 @@
 
 import csv
 import io
+from datetime import datetime
+from typing import cast
 
 from pydantic import HttpUrl
 from sqlalchemy.orm import Session
@@ -19,12 +21,18 @@ BASE = "/api/v1/scrape"  # change once here if prefix ever changes
 # ── Helper ────────────────────────────────────────────────────────────────────
 
 
-def make_job(url: str, title: str = "Engineer", **kwargs: str) -> ScrapedJobCreate:
+def make_job(
+    url: str,
+    title: str = "Engineer",
+    **kwargs: str | datetime | None,
+) -> ScrapedJobCreate:
     """Build a ScrapedJobCreate without repeating HttpUrl() in every test."""
     return ScrapedJobCreate(
         source_url=HttpUrl(url),
         title=title,
-        **kwargs,
+        company=cast(str | None, kwargs.get("company")),
+        location=cast(str | None, kwargs.get("location")),
+        date_posted=cast(datetime | None, kwargs.get("date_posted")),
     )
 
 

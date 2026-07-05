@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime
+from typing import Any, cast
 
 from security_scanner.api.v1.routes.scrapes import scrape_url
 from security_scanner.schemas.scrape import ScrapeRequest
@@ -52,7 +53,7 @@ def test_scrape_route_calls_service_and_returns_response_model() -> None:
         }
     )
 
-    response = asyncio.run(scrape_url(request, service))
+    response = asyncio.run(scrape_url(request, cast(Any, service)))
 
     assert service.calls == [
         {

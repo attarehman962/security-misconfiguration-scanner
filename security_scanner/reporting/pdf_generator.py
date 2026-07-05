@@ -47,7 +47,7 @@ class _FooterDocument(Protocol):
     page: int
 
 
-def _invariant_canvas(*args, **kwargs) -> Canvas:
+def _invariant_canvas(*args: object, **kwargs: object) -> Canvas:
     """Canvas factory that strips wall-clock timestamps and random IDs.
 
     ReportLab's default Canvas embeds the current time in
@@ -70,7 +70,7 @@ def generate_pdf_report(data: ReportData) -> bytes:
     buffer = io.BytesIO()
     doc = _build_doc_template(buffer)
 
-    story = []
+    story: list[object] = []
     story.extend(_build_header(data))
     story.extend(_build_summary(data))
     story.extend(_build_findings_table(data.findings))
@@ -92,7 +92,7 @@ def _build_doc_template(buffer: io.BytesIO) -> BaseDocTemplate:
     return doc
 
 
-def _build_header(data: ReportData) -> list:
+def _build_header(data: ReportData) -> list[object]:
     """Render the report title block: project name, target, scan date."""
     title_style = ParagraphStyle("Title", parent=_STYLES["Title"], fontSize=18)
     meta_style = ParagraphStyle("Meta", parent=_STYLES["Normal"], fontSize=10)
@@ -108,7 +108,7 @@ def _build_header(data: ReportData) -> list:
     ]
 
 
-def _build_summary(data: ReportData) -> list:
+def _build_summary(data: ReportData) -> list[object]:
     """Render the executive summary table."""
     summary = data.summary
     rows = [
@@ -137,7 +137,7 @@ def _build_summary(data: ReportData) -> list:
     ]
 
 
-def _build_findings_table(findings: list[FindingRow]) -> list:
+def _build_findings_table(findings: list[FindingRow]) -> list[object]:
     """Render the findings table; handles the zero-findings edge case."""
     if not findings:
         return [
@@ -179,13 +179,13 @@ def _build_findings_table(findings: list[FindingRow]) -> list:
     return [Paragraph("Findings", _STYLES["Heading2"]), table, Spacer(1, 0.6 * cm)]
 
 
-def _build_remediation_section(findings: list[FindingRow]) -> list:
+def _build_remediation_section(findings: list[FindingRow]) -> list[object]:
     """Render remediation guidance for each failed check only."""
     failed = [f for f in findings if not f.passed]
     if not failed:
         return []
 
-    elements: list[Paragraph | Spacer] = [Paragraph("Remediation", _STYLES["Heading2"])]
+    elements: list[object] = [Paragraph("Remediation", _STYLES["Heading2"])]
     for finding in failed:
         elements.append(Paragraph(finding.check_name, _STYLES["Heading4"]))
         remediation_text = finding.remediation or "No remediation guidance available."

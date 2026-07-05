@@ -62,3 +62,11 @@ warn_unused_configs = true
 warn_return_any = true
 disallow_untyped_defs = true
 disallow_any_generics = true
+
+[[tool.mypy.overrides]]
+module = [
+    "jose.*",
+    "passlib.*",
+    "reportlab.*",
+]
+ignore_missing_imports = true

@@ -116,4 +116,6 @@ def test_scan_result_to_dict_converts_nested_objects() -> None:
                 "remediation": "Add a Content-Security-Policy header.",
             }
         ],
+        "risk_score": None,
+        "risk_level": None,
     }

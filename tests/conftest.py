@@ -1,6 +1,7 @@
 import asyncio
 import os
 from collections.abc import AsyncGenerator, Generator
+from typing import Any, cast
 
 import httpx
 import pytest
@@ -47,12 +48,16 @@ class ASGISyncClient:
 
     def request(self, method: str, path: str, **kwargs: object) -> httpx.Response:
         async def send_request() -> httpx.Response:
-            transport = httpx.ASGITransport(app=self.app, raise_app_exceptions=False)
+            transport = httpx.ASGITransport(
+                app=cast(Any, self.app),
+                raise_app_exceptions=False,
+            )
             async with httpx.AsyncClient(
                 transport=transport,
                 base_url="http://testserver",
             ) as test_client:
-                return await test_client.request(method, path, **kwargs)
+                request_kwargs = cast(dict[str, Any], kwargs)
+                return await test_client.request(method, path, **request_kwargs)
 
         return asyncio.run(send_request())
 
