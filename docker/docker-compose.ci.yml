@@ -20,7 +20,7 @@ services:
   target-site:
     image: nginx:1.27-alpine
     volumes:
-      - ../tests/fixtures/misconfigured_site/html:/usr/share/nginx/html:ro
-      - ../tests/fixtures/misconfigured_site/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ${PWD}/tests/fixtures/misconfigured_site/html:/usr/share/nginx/html:ro
+      - ${PWD}/tests/fixtures/misconfigured_site/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     ports:
       - "${TARGET_SITE_PORT:-8099}:80"

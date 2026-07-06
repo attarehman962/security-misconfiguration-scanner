@@ -5,7 +5,7 @@ set -Eeuo pipefail
 export POSTGRES_USER="${POSTGRES_USER:-postgres}"
 export POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-postgres}"
 export POSTGRES_DB="${POSTGRES_DB:-security_scanner}"
-export POSTGRES_PORT="${POSTGRES_PORT:-55432}"
+export POSTGRES_PORT="${POSTGRES_PORT:-5432}"
 export DATABASE_URL="${DATABASE_URL:-postgresql+psycopg://postgres:postgres@db:5432/security_scanner}"
 export SECRET_KEY="${SECRET_KEY:-ci-only-secret-change-in-production}"
 export ACCESS_TOKEN_EXPIRE_MINUTES="${ACCESS_TOKEN_EXPIRE_MINUTES:-30}"
@@ -14,7 +14,7 @@ export BASE_URL="${BASE_URL:-http://127.0.0.1:${APP_PORT}}"
 export TARGET_SCAN_URL="${TARGET_SCAN_URL:-http://target-site}"
 export SKIP_DOCKER_BUILD="${SKIP_DOCKER_BUILD:-false}"
 
-COMPOSE_FILES=(-f docker/docker-compose.yml -f docker-compose.ci.yml)
+COMPOSE_FILES=(-f docker/docker-compose.yml -f docker/docker-compose.ci.yml)
 INTEGRATION_LOG_FILE="${INTEGRATION_LOG_FILE:-docker-compose.integration.log}"
 LOG_TAIL_LINES="${LOG_TAIL_LINES:-300}"
 WAIT_TIMEOUT_SECONDS="${WAIT_TIMEOUT_SECONDS:-90}"

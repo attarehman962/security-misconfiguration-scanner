@@ -67,6 +67,48 @@ If you use JavaScript scraping, install Playwright browsers:
 python -m playwright install chromium
 ```
 
+## Docker Compose
+
+The Docker Compose files live in the `docker/` directory:
+
+```text
+docker/docker-compose.yml
+docker/docker-compose.ci.yml
+```
+
+Start the app, Postgres database, and integration target site:
+
+```bash
+POSTGRES_PORT=55432 docker compose -f docker/docker-compose.yml -f docker/docker-compose.ci.yml up -d --build app db target-site
+```
+
+The app is available at `http://localhost:8000`, and the target site is
+available at `http://localhost:8099`.
+
+Check container status:
+
+```bash
+POSTGRES_PORT=55432 docker compose -f docker/docker-compose.yml -f docker/docker-compose.ci.yml ps
+```
+
+View logs:
+
+```bash
+POSTGRES_PORT=55432 docker compose -f docker/docker-compose.yml -f docker/docker-compose.ci.yml logs -f
+```
+
+Shut down the stack and remove the database volume:
+
+```bash
+docker compose -f docker/docker-compose.yml -f docker/docker-compose.ci.yml down -v
+```
+
+Run the full Docker-backed integration flow:
+
+```bash
+scripts/run_integration.sh
+```
+
 ## CLI Usage
 
 Show help:

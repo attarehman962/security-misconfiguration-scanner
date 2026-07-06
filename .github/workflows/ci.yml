@@ -43,7 +43,7 @@ jobs:
 
       - name: Build and start Docker stack
         run: |
-          docker compose -f docker/docker-compose.yml -f docker-compose.ci.yml up -d --build app db target-site
+          docker compose -f docker/docker-compose.yml -f docker/docker-compose.ci.yml up -d --build app db target-site
 
       - name: Run pytest
         run: |
@@ -53,7 +53,7 @@ jobs:
       - name: Save Docker logs
         if: always()
         run: |
-          docker compose -f docker/docker-compose.yml -f docker-compose.ci.yml logs --no-color > docker-compose-ci.log
+          docker compose -f docker/docker-compose.yml -f docker/docker-compose.ci.yml logs --no-color > docker-compose-ci.log
 
       - name: Upload Docker logs
         if: failure()
@@ -65,4 +65,4 @@ jobs:
       - name: Stop Docker stack
         if: always()
         run: |
-          docker compose -f docker/docker-compose.yml -f docker-compose.ci.yml down -v
+          docker compose -f docker/docker-compose.yml -f docker/docker-compose.ci.yml down -v
