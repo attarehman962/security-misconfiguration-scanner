@@ -79,7 +79,7 @@ docker/docker-compose.ci.yml
 Start the app, Postgres database, and integration target site:
 
 ```bash
-POSTGRES_PORT=55432 docker compose -f docker/docker-compose.yml -f docker/docker-compose.ci.yml up -d --build app db target-site
+POSTGRES_PORT=5432 docker compose -f docker/docker-compose.yml -f docker/docker-compose.ci.yml up -d --build app db target-site
 ```
 
 The app is available at `http://localhost:8000`, and the target site is
@@ -88,13 +88,13 @@ available at `http://localhost:8099`.
 Check container status:
 
 ```bash
-POSTGRES_PORT=55432 docker compose -f docker/docker-compose.yml -f docker/docker-compose.ci.yml ps
+POSTGRES_PORT=5432 docker compose -f docker/docker-compose.yml -f docker/docker-compose.ci.yml ps
 ```
 
 View logs:
 
 ```bash
-POSTGRES_PORT=55432 docker compose -f docker/docker-compose.yml -f docker/docker-compose.ci.yml logs -f
+POSTGRES_PORT=5432 docker compose -f docker/docker-compose.yml -f docker/docker-compose.ci.yml logs -f
 ```
 
 Shut down the stack and remove the database volume:
