@@ -371,167 +371,167 @@ def finding_terms(findings: Iterable[dict[str, Any]], limit: int = 3) -> list[st
     return terms
 
 
-# @pytest.mark.integration
-# @pytest.mark.slow
-# async def test_full_authenticated_scan_report_and_scrape_flow() -> None:
-#     """Run the complete authenticated scanner and scraper platform flow."""
-#     endpoints = ApiEndpoints()
+@pytest.mark.integration
+@pytest.mark.slow
+async def test_full_authenticated_scan_report_and_scrape_flow() -> None:
+    """Run the complete authenticated scanner and scraper platform flow."""
+    endpoints = ApiEndpoints()
 
-#     base_url = get_required_env("BASE_URL", "http://127.0.0.1:8000")
-#     target_scan_url = get_required_env("TARGET_SCAN_URL")
+    base_url = get_required_env("BASE_URL", "http://127.0.0.1:8000")
+    target_scan_url = get_required_env("TARGET_SCAN_URL")
 
-#     timeout = httpx.Timeout(connect=10.0, read=30.0, write=10.0, pool=10.0)
+    timeout = httpx.Timeout(connect=10.0, read=30.0, write=10.0, pool=10.0)
 
-#     async with httpx.AsyncClient(
-#         base_url=base_url,
-#         timeout=timeout,
-#         follow_redirects=True,
-#     ) as client:
-#         await wait_for_api_health(client, endpoints.health)
+    async with httpx.AsyncClient(
+        base_url=base_url,
+        timeout=timeout,
+        follow_redirects=True,
+    ) as client:
+        await wait_for_api_health(client, endpoints.health)
 
-#         unique_suffix = uuid.uuid4().hex
-#         email = f"atta.day21.{unique_suffix}@example.com"
-#         password = "StrongPassword123!"
+        unique_suffix = uuid.uuid4().hex
+        email = f"atta.day21.{unique_suffix}@example.com"
+        password = "StrongPassword123!"
 
-#         register_response = await client.post(
-#             endpoints.register,
-#             json={
-#                 "email": email,
-#                 "password": password,
-#                 "full_name": "Atta Day 21",
-#             },
-#         )
-#         assert_status(
-#             register_response,
-#             {200, 201},
-#             "Register user",
-#         )
+        register_response = await client.post(
+            endpoints.register,
+            json={
+                "email": email,
+                "password": password,
+                "full_name": "Atta Day 21",
+            },
+        )
+        assert_status(
+            register_response,
+            {200, 201},
+            "Register user",
+        )
 
-#         login_response = await client.post(
-#             endpoints.login,
-#             json={
-#                 "email": email,
-#                 "password": password,
-#             },
-#         )
-#         assert_status(login_response, {200}, "Login user")
+        login_response = await client.post(
+            endpoints.login,
+            json={
+                "email": email,
+                "password": password,
+            },
+        )
+        assert_status(login_response, {200}, "Login user")
 
-#         login_payload = assert_json_object(login_response, "Login user")
-#         access_token = assert_bearer_access_token(login_payload)
+        login_payload = assert_json_object(login_response, "Login user")
+        access_token = assert_bearer_access_token(login_payload)
 
-#         malformed_token_response = await client.get(
-#             endpoints.me,
-#             headers={"Authorization": "Bearer not-a-jwt"},
-#         )
-#         assert_status(
-#             malformed_token_response,
-#             {401},
-#             "Reject malformed bearer token",
-#         )
+        malformed_token_response = await client.get(
+            endpoints.me,
+            headers={"Authorization": "Bearer not-a-jwt"},
+        )
+        assert_status(
+            malformed_token_response,
+            {401},
+            "Reject malformed bearer token",
+        )
 
-#         auth_headers = {"Authorization": f"Bearer {access_token}"}
+        auth_headers = {"Authorization": f"Bearer {access_token}"}
 
-#         create_scan_response = await client.post(
-#             endpoints.create_scan,
-#             headers=auth_headers,
-#             json={
-#                 "target_url": target_scan_url,
-#             },
-#         )
-#         assert_status(
-#             create_scan_response,
-#             {200, 201, 202},
-#             "Create scan",
-#         )
+        create_scan_response = await client.post(
+            endpoints.create_scan,
+            headers=auth_headers,
+            json={
+                "target_url": target_scan_url,
+            },
+        )
+        assert_status(
+            create_scan_response,
+            {200, 201, 202},
+            "Create scan",
+        )
 
-#         scan_payload = assert_json_object(create_scan_response, "Create scan")
-#         scan_id = extract_identifier(scan_payload, ("id", "scan_id"))
-#         status_url = scan_payload.get("status_url")
-#         assert isinstance(status_url, str) and status_url.strip(), (
-#             f"Create scan response missing status_url: {scan_payload}"
-#         )
-#         assert status_url.endswith(f"/{scan_id}"), (
-#             f"Create scan status_url does not match scan_id {scan_id}: {scan_payload}"
-#         )
+        scan_payload = assert_json_object(create_scan_response, "Create scan")
+        scan_id = extract_identifier(scan_payload, ("id", "scan_id"))
+        status_url = scan_payload.get("status_url")
+        assert isinstance(status_url, str) and status_url.strip(), (
+            f"Create scan response missing status_url: {scan_payload}"
+        )
+        assert status_url.endswith(f"/{scan_id}"), (
+            f"Create scan status_url does not match scan_id {scan_id}: {scan_payload}"
+        )
 
-#         completed_scan = await poll_until_completed(
-#             client=client,
-#             status_path=status_url,
-#             token=access_token,
-#         )
+        completed_scan = await poll_until_completed(
+            client=client,
+            status_path=status_url,
+            token=access_token,
+        )
 
-#         assert extract_status(completed_scan) in SUCCESS_STATUSES
-#         findings = extract_completed_scan_findings(completed_scan)
+        assert extract_status(completed_scan) in SUCCESS_STATUSES
+        findings = extract_completed_scan_findings(completed_scan)
 
-#         report_response = await client.get(
-#             endpoints.scan_report_pdf(scan_id),
-#             headers=auth_headers,
-#         )
-#         assert_status(report_response, {200}, "Download scan PDF report")
+        report_response = await client.get(
+            endpoints.scan_report_pdf(scan_id),
+            headers=auth_headers,
+        )
+        assert_status(report_response, {200}, "Download scan PDF report")
 
-#         content_type = report_response.headers.get("content-type", "")
-#         assert "application/pdf" in content_type.lower(), (
-#             "PDF route returned a non-PDF response. "
-#             f"{response_preview(report_response)}"
-#         )
+        content_type = report_response.headers.get("content-type", "")
+        assert "application/pdf" in content_type.lower(), (
+            "PDF route returned a non-PDF response. "
+            f"{response_preview(report_response)}"
+        )
 
-#         assert_pdf_contains_findings(
-#             pdf_bytes=report_response.content,
-#             expected_terms=[
-#                 target_scan_url,
-#                 *finding_terms(findings),
-#             ],
-#         )
+        assert_pdf_contains_findings(
+            pdf_bytes=report_response.content,
+            expected_terms=[
+                target_scan_url,
+                *finding_terms(findings),
+            ],
+        )
 
-#         scrape_response = await client.post(
-#             endpoints.scrape_url,
-#             json={
-#                 "url": target_scan_url,
-#                 "css_selector": "a, h1, tr",
-#                 "use_javascript": False,
-#             },
-#         )
-#         assert_status(
-#             scrape_response,
-#             {200},
-#             "Live scrape target",
-#         )
+        scrape_response = await client.post(
+            endpoints.scrape_url,
+            json={
+                "url": target_scan_url,
+                "css_selector": "a, h1, tr",
+                "use_javascript": False,
+            },
+        )
+        assert_status(
+            scrape_response,
+            {200},
+            "Live scrape target",
+        )
 
-#         scrape_payload = assert_json_object(scrape_response, "Live scrape target")
-#         scraped_jobs = scrape_items_to_jobs(scrape_payload, target_scan_url)
+        scrape_payload = assert_json_object(scrape_response, "Live scrape target")
+        scraped_jobs = scrape_items_to_jobs(scrape_payload, target_scan_url)
 
-#         save_scrape_response = await client.post(
-#             endpoints.save_scrape_results,
-#             headers=auth_headers,
-#             json=scraped_jobs,
-#         )
-#         assert_status(
-#             save_scrape_response,
-#             {201},
-#             "Save scraped results",
-#         )
+        save_scrape_response = await client.post(
+            endpoints.save_scrape_results,
+            headers=auth_headers,
+            json=scraped_jobs,
+        )
+        assert_status(
+            save_scrape_response,
+            {201},
+            "Save scraped results",
+        )
 
-#         saved_scrape_payload = assert_json_array(
-#             save_scrape_response,
-#             "Save scraped results",
-#         )
-#         assert saved_scrape_payload, (
-#             f"Scrape completed but no rows were saved: {saved_scrape_payload}"
-#         )
+        saved_scrape_payload = assert_json_array(
+            save_scrape_response,
+            "Save scraped results",
+        )
+        assert saved_scrape_payload, (
+            f"Scrape completed but no rows were saved: {saved_scrape_payload}"
+        )
 
-#         csv_response = await client.get(
-#             endpoints.scrape_results_csv_export,
-#             headers=auth_headers,
-#         )
-#         assert_status(csv_response, {200}, "Export scraped results CSV")
+        csv_response = await client.get(
+            endpoints.scrape_results_csv_export,
+            headers=auth_headers,
+        )
+        assert_status(csv_response, {200}, "Export scraped results CSV")
 
-#         csv_content_type = csv_response.headers.get("content-type", "")
-#         assert (
-#             "text/csv" in csv_content_type.lower()
-#             or "application/octet-stream" in csv_content_type.lower()
-#         ), f"Unexpected CSV content type: {csv_content_type}"
+        csv_content_type = csv_response.headers.get("content-type", "")
+        assert (
+            "text/csv" in csv_content_type.lower()
+            or "application/octet-stream" in csv_content_type.lower()
+        ), f"Unexpected CSV content type: {csv_content_type}"
 
-#         assert_csv_has_rows(
-#             csv_response.text,
-#             expected_titles=[job["title"] for job in scraped_jobs],
-#         )
+        assert_csv_has_rows(
+            csv_response.text,
+            expected_titles=[job["title"] for job in scraped_jobs],
+        )

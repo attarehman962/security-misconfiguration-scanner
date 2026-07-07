@@ -101,7 +101,7 @@ run_integration() {
   wait_for_service db || return
   wait_for_service app || return
   wait_for_target_site || return
-  pytest -q -m integration
+  pytest -q tests/integration
 }
 
 trap cleanup EXIT
