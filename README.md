@@ -32,19 +32,19 @@ penetration test. Only scan systems you own or have explicit permission to test.
 
 ## Tech Stack
 
-| Area | Tools |
-| --- | --- |
-| Language | Python 3.11+ |
-| API | FastAPI, Starlette, Uvicorn |
-| Database | PostgreSQL, SQLAlchemy, Alembic |
-| Auth | JWT, python-jose, passlib, bcrypt |
-| Scanner | HTTPX, Cryptography, custom security checks |
-| Scraping | Static HTML extraction, Playwright support |
-| Reports | ReportLab PDF generation, CSV export |
-| Testing | pytest, pytest-asyncio, pytest-cov |
-| Quality | Ruff, mypy |
-| Runtime | Docker Compose |
-| CI | GitHub Actions |
+| Area     | Tools                                       |
+| -------- | ------------------------------------------- |
+| Language | Python 3.11+                                |
+| API      | FastAPI, Starlette, Uvicorn                 |
+| Database | PostgreSQL, SQLAlchemy, Alembic             |
+| Auth     | JWT, python-jose, passlib, bcrypt           |
+| Scanner  | HTTPX, Cryptography, custom security checks |
+| Scraping | Static HTML extraction, Playwright support  |
+| Reports  | ReportLab PDF generation, CSV export        |
+| Testing  | pytest, pytest-asyncio, pytest-cov          |
+| Quality  | Ruff, mypy                                  |
+| Runtime  | Docker Compose                              |
+| CI       | GitHub Actions                              |
 
 ## Architecture
 
@@ -96,7 +96,7 @@ cd security-misconfiguration-scanner
 Start the Docker stack:
 
 ```bash
-POSTGRES_PORT=55432 docker compose -f docker/docker-compose.yml -f docker/docker-compose.ci.yml up -d --build app db target-site
+POSTGRES_PORT=5432 docker compose -f docker/docker-compose.yml -f docker/docker-compose.ci.yml up -d --build app db target-site
 ```
 
 The app runs at:
@@ -105,13 +105,13 @@ The app runs at:
 API:        http://localhost:8000
 API docs:   http://localhost:8000/docs
 Target:     http://localhost:8099
-Postgres:   localhost:55432
+Postgres:   localhost:5432
 ```
 
 Check container status:
 
 ```bash
-POSTGRES_PORT=55432 docker compose -f docker/docker-compose.yml -f docker/docker-compose.ci.yml ps
+POSTGRES_PORT=5432 docker compose -f docker/docker-compose.yml -f docker/docker-compose.ci.yml ps
 ```
 
 Shut down the stack and remove the test database volume:
@@ -119,9 +119,6 @@ Shut down the stack and remove the test database volume:
 ```bash
 docker compose -f docker/docker-compose.yml -f docker/docker-compose.ci.yml down -v
 ```
-
-If port `5432` is available and you prefer the default PostgreSQL port, replace
-`POSTGRES_PORT=55432` with `POSTGRES_PORT=5432`.
 
 You do not need to copy `.env.example` for the Docker quick start. If you already
 have a local `.env` file with `DATABASE_URL=sqlite:///./app.db`, remove that
@@ -146,7 +143,7 @@ alembic upgrade head && uvicorn security_scanner.main:app --host 0.0.0.0 --port 
 View logs:
 
 ```bash
-POSTGRES_PORT=55432 docker compose -f docker/docker-compose.yml -f docker/docker-compose.ci.yml logs -f
+POSTGRES_PORT=5432 docker compose -f docker/docker-compose.yml -f docker/docker-compose.ci.yml logs -f
 ```
 
 Run the full Docker-backed integration flow:
@@ -166,7 +163,7 @@ security-scanner --help
 Run a scan from inside the app container against the Docker target site:
 
 ```bash
-POSTGRES_PORT=55432 docker compose -f docker/docker-compose.yml -f docker/docker-compose.ci.yml exec app \
+POSTGRES_PORT=5432 docker compose -f docker/docker-compose.yml -f docker/docker-compose.ci.yml exec app \
   python -m security_scanner --url http://target-site:80
 ```
 
@@ -193,20 +190,20 @@ the API for completed background scans.
 
 ## API Endpoints
 
-| Method | Endpoint | Auth | Purpose |
-| --- | --- | --- | --- |
-| `GET` | `/api/v1/health` | No | Health check |
-| `POST` | `/api/v1/auth/register` | No | Register a user |
-| `POST` | `/api/v1/auth/login` | No | Login and receive a JWT |
-| `GET` | `/api/v1/auth/me` | Yes | Return the current user |
-| `POST` | `/api/v1/scans` | Yes | Start a background scan |
-| `GET` | `/api/v1/scans` | Yes | List the current user's scans |
-| `GET` | `/api/v1/scans/{scan_id}` | Yes | Get scan status and findings |
-| `GET` | `/api/v1/scans/{scan_id}/report` | Yes | Download a completed scan as PDF |
-| `POST` | `/api/v1/scrape/` | No | Scrape a URL immediately |
-| `POST` | `/api/v1/scrape/results` | Yes | Save scraped job rows |
-| `GET` | `/api/v1/scrape/results` | Yes | List saved scraped jobs |
-| `GET` | `/api/v1/scrape/results/export` | Yes | Export saved scraped jobs as CSV |
+| Method | Endpoint                         | Auth | Purpose                          |
+| ------ | -------------------------------- | ---- | -------------------------------- |
+| `GET`  | `/api/v1/health`                 | No   | Health check                     |
+| `POST` | `/api/v1/auth/register`          | No   | Register a user                  |
+| `POST` | `/api/v1/auth/login`             | No   | Login and receive a JWT          |
+| `GET`  | `/api/v1/auth/me`                | Yes  | Return the current user          |
+| `POST` | `/api/v1/scans`                  | Yes  | Start a background scan          |
+| `GET`  | `/api/v1/scans`                  | Yes  | List the current user's scans    |
+| `GET`  | `/api/v1/scans/{scan_id}`        | Yes  | Get scan status and findings     |
+| `GET`  | `/api/v1/scans/{scan_id}/report` | Yes  | Download a completed scan as PDF |
+| `POST` | `/api/v1/scrape/`                | No   | Scrape a URL immediately         |
+| `POST` | `/api/v1/scrape/results`         | Yes  | Save scraped job rows            |
+| `GET`  | `/api/v1/scrape/results`         | Yes  | List saved scraped jobs          |
+| `GET`  | `/api/v1/scrape/results/export`  | Yes  | Export saved scraped jobs as CSV |
 
 Interactive API documentation is available after startup:
 
@@ -317,11 +314,11 @@ artifacts/target-site-scan.pdf
 Screenshots and demo videos are not required to run or test the project. If you
 want them for a portfolio page, useful captures are:
 
-| View | Suggested file | Notes |
-| --- | --- | --- |
+| View                 | Suggested file                       | Notes                                                     |
+| -------------------- | ------------------------------------ | --------------------------------------------------------- |
 | Terminal scan output | `docs/screenshots/terminal-scan.png` | Capture the CLI table output for `http://target-site:80`. |
-| API docs page | `docs/screenshots/api-docs.png` | Capture `http://localhost:8000/docs`. |
-| Sample PDF report | `docs/screenshots/pdf-report.png` | Capture a page from `artifacts/target-site-scan.pdf`. |
+| API docs page        | `docs/screenshots/api-docs.png`      | Capture `http://localhost:8000/docs`.                     |
+| Sample PDF report    | `docs/screenshots/pdf-report.png`    | Capture a page from `artifacts/target-site-scan.pdf`.     |
 
 A short demo can follow this flow:
 
