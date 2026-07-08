@@ -1,0 +1,3 @@
+curl -L http://127.0.0.1:8000/api/v1/scans/$SCAN_ID/report.pdf \
+  -H "Authorization: Bearer $TOKEN" \
+  -o demo-scan-report.pdf

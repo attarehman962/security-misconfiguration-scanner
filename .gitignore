@@ -91,3 +91,4 @@ test-results/
 # Local Codex/agent workspace files
 .codex/
 .agents/
+.commands/
