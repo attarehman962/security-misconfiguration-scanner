@@ -7,12 +7,52 @@
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED)
 ![pytest](https://img.shields.io/badge/tests-pytest-0A9EDC)
 ![GitHub Actions](https://img.shields.io/badge/CI-GitHub%20Actions-2088FF)
+![License](https://img.shields.io/badge/license-MIT-green)
 
 Python/FastAPI security scanner for headers, CORS, exposed files, SSL issues,
 PDF reports, scraping, Docker, PostgreSQL, and CI.
 
 This is a learning and portfolio project, not a replacement for a professional
 penetration test. Only scan systems you own or have explicit permission to test.
+
+## Table of Contents
+
+- [Why I Built This](#why-i-built-this)
+- [Repository Metadata](#repository-metadata)
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Architecture](#architecture)
+- [Requirements](#requirements)
+- [Quick Start](#quick-start)
+- [Docker Compose](#docker-compose)
+- [CLI Usage](#cli-usage)
+- [API Endpoints](#api-endpoints)
+- [API Examples](#api-examples)
+- [Example Output](#example-output)
+- [Optional Portfolio Assets](#optional-portfolio-assets)
+- [Local Python Setup](#local-python-setup)
+- [Tests And Quality](#tests-and-quality)
+- [Project Structure](#project-structure)
+- [Known Limitations](#known-limitations)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [Security Notes](#security-notes)
+- [License](#license)
+
+## Why I Built This
+
+I built this project to go deeper than typical tutorial-level CRUD apps and
+practice building something closer to a real security tool: a FastAPI backend
+with JWT auth, background job processing, PostgreSQL persistence, PDF
+reporting, and a full CI/CD pipeline. It's meant to demonstrate:
+
+- Designing and documenting a REST API from scratch.
+- Working with async background jobs and persistent state.
+- Writing checks that reason about real HTTP security issues (headers, CORS,
+  SSL, exposed files).
+- Containerizing a multi-service app with Docker Compose, including an
+  intentionally vulnerable target for safe local testing.
+- Setting up automated testing, linting, type checking, and CI.
 
 ## Repository Metadata
 
@@ -216,7 +256,7 @@ the API for completed background scans.
 ## API Endpoints
 
 | Method | Endpoint                         | Auth | Purpose                          |
-| ------ | -------------------------------- | ---- | -------------------------------- |
+| ------ | --------------------------------- | ---- | -------------------------------- |
 | `GET`  | `/api/v1/health`                 | No   | Health check                     |
 | `POST` | `/api/v1/auth/register`          | No   | Register a user                  |
 | `POST` | `/api/v1/auth/login`             | No   | Login and receive a JWT          |
@@ -336,11 +376,13 @@ artifacts/target-site-scan.pdf
 
 ## Optional Portfolio Assets
 
+> Screenshots and demo video coming soon.
+
 Screenshots and demo videos are not required to run or test the project. If you
 want them for a portfolio page, useful captures are:
 
 | View                 | Suggested file                       | Notes                                                     |
-| -------------------- | ------------------------------------ | --------------------------------------------------------- |
+| -------------------- | ------------------------------------- | ----------------------------------------------------------- |
 | Terminal scan output | `docs/screenshots/terminal-scan.png` | Capture the CLI table output for `http://target-site:80`. |
 | API docs page        | `docs/screenshots/api-docs.png`      | Capture `http://localhost:8000/docs`.                     |
 | Sample PDF report    | `docs/screenshots/pdf-report.png`    | Capture a page from `artifacts/target-site-scan.pdf`.     |
@@ -353,6 +395,16 @@ A short demo can follow this flow:
 4. Start a scan against `http://target-site:80`.
 5. Show findings and download the PDF report.
 6. Run the CLI scan from the app container.
+
+<!--
+Once your assets are ready, embed them like this:
+
+![Terminal scan output](docs/screenshots/terminal-scan.png)
+![API docs](docs/screenshots/api-docs.png)
+![PDF report sample](docs/screenshots/pdf-report.png)
+
+[Watch the demo video](docs/demo.mp4)
+-->
 
 ## Local Python Setup
 
@@ -462,6 +514,43 @@ docs/
   setup.md
 ```
 
+## Known Limitations
+
+- The security checks cover common misconfigurations (headers, CORS, exposed
+  files, SSL) and are not a substitute for a full penetration test or a
+  commercial DAST/SAST tool.
+- Background scan jobs are processed in-process; there is no dedicated task
+  queue (e.g. Celery, RQ) yet, so scan throughput is limited under load.
+- Playwright-based scraping increases resource usage and is optional by
+  design — static scraping is used by default.
+- Authentication is JWT-based with no refresh-token rotation or rate limiting
+  on auth endpoints yet.
+- Test coverage focuses on API and unit-level checks; broader end-to-end
+  coverage across all checks is still growing.
+
+## Roadmap
+
+- [ ] Add refresh-token support and rate limiting on auth endpoints.
+- [ ] Move background scan jobs to a proper task queue.
+- [ ] Expand the security check library (e.g. cookie flags, subresource
+      integrity, open redirect detection).
+- [ ] Add HTML report output alongside PDF and JSON.
+- [ ] Publish demo screenshots and a walkthrough video.
+
+## Contributing
+
+This started as a solo learning/portfolio project, but suggestions and pull
+requests are welcome.
+
+1. Fork the repository and create a feature branch.
+2. Follow the existing code style — run `ruff check .` and `mypy security_scanner tests`
+   before opening a PR.
+3. Add or update tests under `tests/` for any behavior change.
+4. Open a pull request describing the change and why it's useful.
+
+If you find a bug or have an idea, opening an issue first is a good way to
+start a discussion before writing code.
+
 ## Security Notes
 
 - Only scan systems you own or have authorization to test.
@@ -469,3 +558,7 @@ docs/
   testing.
 - Do not use the CI/demo secrets in production.
 - Replace `JWT_SECRET_KEY` with a strong random value before deploying.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
