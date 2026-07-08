@@ -8,14 +8,39 @@
 ![pytest](https://img.shields.io/badge/tests-pytest-0A9EDC)
 ![GitHub Actions](https://img.shields.io/badge/CI-GitHub%20Actions-2088FF)
 
-A Python/FastAPI platform that detects common web security misconfigurations,
-including missing security headers, exposed files, weak CORS policies, server
-banner leaks, and SSL issues. It supports CLI scans, authenticated API scans,
-PostgreSQL-backed scan history, scraped-data persistence, CSV export, and PDF
-reports generated on demand.
+Python/FastAPI security scanner for headers, CORS, exposed files, SSL issues,
+PDF reports, scraping, Docker, PostgreSQL, and CI.
 
 This is a learning and portfolio project, not a replacement for a professional
 penetration test. Only scan systems you own or have explicit permission to test.
+
+## Repository Metadata
+
+Description:
+
+```text
+Python/FastAPI security scanner for headers, CORS, exposed files, SSL issues, PDF reports, scraping, Docker, PostgreSQL, and CI.
+```
+
+GitHub topics:
+
+```text
+python
+fastapi
+postgresql
+sqlalchemy
+alembic
+security-scanner
+security-automation
+web-security
+docker
+pytest
+github-actions
+web-scraping
+playwright
+jwt-authentication
+pdf-report
+```
 
 ## Features
 
