@@ -8,6 +8,8 @@ version = "0.1.0"
 description = "Python security misconfiguration scanner portfolio project."
 readme = "README.md"
 requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
 dependencies = [
     "alembic==1.18.4",
     "bcrypt==4.0.1",
