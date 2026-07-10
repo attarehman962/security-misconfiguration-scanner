@@ -62,9 +62,9 @@ def submit_scan(
         raise ScanSubmissionError("Could not queue scan.") from exc
 
     return ScanAcceptedResponse(
-        scan_id=scan.id,
+        scan_id=scan.public_id,
         status=scan.status,
-        status_url=f"/api/v1/scans/{scan.id}",
+        status_url=f"/api/v1/scans/{scan.public_id}",
     )
 
 
@@ -91,7 +91,7 @@ def list_user_scans(*, db: Session, user_id: int) -> list[ScanStatusResponse]:
 def get_user_scan(
     *,
     db: Session,
-    scan_id: int,
+    scan_id: str,
     user_id: int,
 ) -> ScanStatusResponse | None:
     """Return a scan only when it belongs to the user."""
@@ -110,7 +110,7 @@ def get_user_scan(
 def _scan_record_to_response(scan: ScanRecord) -> ScanStatusResponse:
     """Convert a persisted scan record into the public status response."""
     return ScanStatusResponse(
-        scan_id=scan.id,
+        scan_id=scan.public_id,
         url=scan.url,
         status=scan.status,
         error_message=scan.error_message,

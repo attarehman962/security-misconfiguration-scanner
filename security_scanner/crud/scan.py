@@ -5,7 +5,7 @@ from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from typing import cast
 
-from sqlalchemy import select
+from sqlalchemy import Select, select
 from sqlalchemy.orm import Session
 
 from security_scanner.models.finding import FindingRecord
@@ -38,7 +38,7 @@ def get_scans_for_user(db: Session, user_id: int) -> list[ScanRecord]:
     return list(db.scalars(statement).all())
 
 
-def get_scan_for_user(db: Session, scan_id: int, user_id: int) -> ScanRecord | None:
+def get_scan_for_user(db: Session, scan_id: str, user_id: int) -> ScanRecord | None:
     """Return a single scan only if it belongs to the given user, else None.
 
     Critical: the user_id filter is part of the SQL WHERE clause, not a
@@ -46,7 +46,7 @@ def get_scan_for_user(db: Session, scan_id: int, user_id: int) -> ScanRecord | N
     indistinguishable from a scan that does not exist.
     """
     statement = select(ScanRecord).where(
-        ScanRecord.id == scan_id,
+        ScanRecord.public_id == scan_id,
         ScanRecord.user_id == user_id,
     )
     return db.scalars(statement).first()
@@ -75,12 +75,12 @@ def save_findings(
 
 def update_scan_result_metadata(
     db: Session,
-    scan_id: int,
+    scan_id: int | str,
     risk_score: float | None,
     risk_level: str | None,
 ) -> None:
     """Persist computed scan result metadata after findings are saved."""
-    statement = select(ScanRecord).where(ScanRecord.id == scan_id)
+    statement = _scan_lookup_statement(scan_id)
     scan = db.scalars(statement).first()
     if scan is None:
         logger.error("Attempted to update metadata for nonexistent scan_id=%s", scan_id)
@@ -93,12 +93,12 @@ def update_scan_result_metadata(
 
 def update_scan_status(
     db: Session,
-    scan_id: int,
+    scan_id: int | str,
     status: ScanRecordStatus,
     error_message: str | None = None,
 ) -> None:
     """Update a scan's status and optional error message."""
-    statement = select(ScanRecord).where(ScanRecord.id == scan_id)
+    statement = _scan_lookup_statement(scan_id)
     scan = db.scalars(statement).first()
     if scan is None:
         logger.error("Attempted to update status for nonexistent scan_id=%s", scan_id)
@@ -112,3 +112,10 @@ def update_scan_status(
     if status in (ScanRecordStatus.COMPLETED, ScanRecordStatus.FAILED):
         scan.completed_at = datetime.now(UTC)
     db.commit()
+
+
+def _scan_lookup_statement(scan_id: int | str) -> Select[tuple[ScanRecord]]:
+    """Build a lookup for internal integer IDs or public random IDs."""
+    if isinstance(scan_id, int):
+        return select(ScanRecord).where(ScanRecord.id == scan_id)
+    return select(ScanRecord).where(ScanRecord.public_id == scan_id)

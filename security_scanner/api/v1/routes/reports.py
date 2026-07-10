@@ -20,7 +20,7 @@ CurrentUserDependency = Annotated[User, Depends(get_current_user)]
 
 @router.get("/scans/{scan_id}/report")
 def get_scan_report_pdf(
-    scan_id: int,
+    scan_id: str,
     db: DBDependency,
     current_user: CurrentUserDependency,
 ) -> Response:

@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING
+from uuid import uuid4
 
 from sqlalchemy import DateTime, Enum, Float, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -29,6 +30,13 @@ class ScanRecord(Base):
 
     # ── Primary key ───────────────────────────────────────────────────────────
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    public_id: Mapped[str] = mapped_column(
+        String(32),
+        unique=True,
+        index=True,
+        nullable=False,
+        default=lambda: uuid4().hex,
+    )
 
     # ── Ownership ─────────────────────────────────────────────────────────────
     user_id: Mapped[int] = mapped_column(

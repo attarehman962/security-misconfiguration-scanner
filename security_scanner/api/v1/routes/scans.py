@@ -85,7 +85,7 @@ async def list_scans(
     summary="Get background security scan status",
 )
 async def get_scan_status(
-    scan_id: int,
+    scan_id: str,
     db: DBDependency,
     current_user: CurrentUserDependency,
 ) -> ScanStatusResponse:

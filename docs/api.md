@@ -127,9 +127,9 @@ Typical accepted response:
 
 ```json
 {
-  "scan_id": 1,
+  "scan_id": "8b2f0e7d0c5f4a4a8c52b18e7610f93d",
   "status": "pending",
-  "status_url": "/api/v1/scans/1"
+  "status_url": "/api/v1/scans/8b2f0e7d0c5f4a4a8c52b18e7610f93d"
 }
 ```
 
