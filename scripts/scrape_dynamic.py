@@ -26,7 +26,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--json-output", required=True, help="JSON output path")
     parser.add_argument("--csv-output", required=True, help="CSV output path")
     parser.add_argument("--timeout-ms", type=int, default=15_000)
-    parser.add_argument("--max-items", type=int, default=50)
+    parser.add_argument("--max-items", type=int, default=200)
     parser.add_argument("--show-browser", action="store_true")
     parser.add_argument("--browser-channel", help="Browser channel, e.g. chrome")
 

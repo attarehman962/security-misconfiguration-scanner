@@ -25,7 +25,8 @@ cp .env.example .env
 Important settings:
 
 ```text
-DATABASE_URL=sqlite:///./app.db
+POSTGRES_PORT=5432
+DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/security_scanner
 JWT_SECRET_KEY=change-this-in-real-deployments
 JWT_ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
@@ -34,6 +35,12 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 Use a long random `JWT_SECRET_KEY` outside local development.
 
 ## Database
+
+Start PostgreSQL, then apply migrations:
+
+```bash
+POSTGRES_PORT=5432 docker compose -f docker/docker-compose.yml up -d db
+```
 
 Apply migrations:
 
@@ -132,8 +139,7 @@ scripts/run_integration.sh
 
 The integration script starts PostgreSQL, the FastAPI app, and the deterministic
 nginx target site used by scanner/scraper tests.
-It defaults PostgreSQL to host port `55432` to avoid colliding with local
-PostgreSQL on `5432`; override `APP_PORT`, `POSTGRES_PORT`, or
+It defaults PostgreSQL to host port `5432`; override `APP_PORT`, `POSTGRES_PORT`, or
 `TARGET_SITE_PORT` when your machine or CI runner needs different ports.
 Set `SKIP_DOCKER_BUILD=true` to reuse already-built images during local reruns
 when Docker Hub is temporarily unavailable.

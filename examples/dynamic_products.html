@@ -1,52 +1,924 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="utf-8" />
-    <title>Dynamic Product Listing</title>
+    <title>Dynamic Product Listing — Mega Stress Test</title>
+    <style>
+      :root {
+        --bg: #fff;
+        --fg: #111;
+        --card: #fafafa;
+      }
+      html[data-theme="dark"] {
+        --bg: #14161a;
+        --fg: #eee;
+        --card: #1e2126;
+      }
+      body {
+        font-family: sans-serif;
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+      }
+      main {
+        margin: 2rem;
+      }
+      .product-card {
+        border: 1px solid #ddd;
+        padding: 0.75rem 1rem;
+        margin-bottom: 0.5rem;
+        border-radius: 6px;
+        background: var(--card);
+      }
+      .product-card.out-of-stock {
+        opacity: 0.5;
+      }
+      .product-card.featured {
+        border-color: gold;
+      }
+      .badge {
+        display: inline-block;
+        font-size: 0.75rem;
+        padding: 2px 6px;
+        border-radius: 4px;
+        margin-left: 6px;
+      }
+      .badge-new {
+        background: #d1f7d6;
+        color: #12660b;
+      }
+      .badge-sale {
+        background: #ffe0e0;
+        color: #a10000;
+      }
+      .hidden {
+        display: none;
+      }
+      #load-more {
+        margin: 1rem 0;
+        padding: 0.5rem 1rem;
+      }
+      #sentinel {
+        height: 1px;
+      }
+      .category-section {
+        margin-top: 2rem;
+      }
+      .price-strike {
+        text-decoration: line-through;
+        color: #999;
+        margin-right: 6px;
+      }
+      #cookie-banner {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: #222;
+        color: #fff;
+        padding: 1rem;
+        z-index: 999;
+      }
+      #cookie-banner button {
+        margin-left: 1rem;
+      }
+      .toast {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        background: #333;
+        color: #fff;
+        padding: 0.6rem 1rem;
+        border-radius: 4px;
+        margin-bottom: 0.5rem;
+        z-index: 998;
+      }
+      .toast-stack {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        z-index: 998;
+      }
+      table.product-table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      table.product-table th,
+      table.product-table td {
+        border: 1px solid #ccc;
+        padding: 4px 8px;
+        text-align: left;
+      }
+      .tabs button {
+        padding: 0.4rem 0.8rem;
+        margin-right: 4px;
+      }
+      .tabs button.active {
+        font-weight: bold;
+        text-decoration: underline;
+      }
+      .carousel {
+        display: flex;
+        gap: 0.5rem;
+        overflow-x: auto;
+        padding: 0.5rem 0;
+      }
+      .carousel .product-card {
+        min-width: 180px;
+      }
+      .accordion-item {
+        border: 1px solid #ddd;
+        margin-bottom: 4px;
+      }
+      .accordion-header {
+        cursor: pointer;
+        padding: 0.5rem;
+        background: #eee;
+      }
+      .accordion-body {
+        padding: 0.5rem;
+        display: none;
+      }
+      .accordion-body.open {
+        display: block;
+      }
+      .skeleton {
+        background: linear-gradient(90deg, #eee, #f5f5f5, #eee);
+        height: 20px;
+        margin-bottom: 6px;
+      }
+      img.lazy {
+        background: #eee;
+        min-height: 40px;
+      }
+      .ticker-up {
+        color: green;
+      }
+      .ticker-down {
+        color: red;
+      }
+      iframe#nested-frame {
+        width: 100%;
+        height: 260px;
+        border: 1px dashed #999;
+      }
+    </style>
   </head>
   <body>
-    <h1>Products</h1>
-    <div id="status">Loading products with JavaScript...</div>
-    <section id="products"></section>
+    <div id="cookie-banner" role="dialog" aria-label="Cookie consent">
+      This site uses cookies for testing purposes.
+      <button id="cookie-accept">Accept</button>
+      <button id="cookie-reject">Reject</button>
+    </div>
+
+    <div class="toast-stack" id="toast-stack"></div>
+
+    <main>
+      <h1>Products</h1>
+      <button id="theme-toggle">Toggle dark mode</button>
+      <div id="status">Loading products with JavaScript...</div>
+
+      <div id="controls">
+        <input type="text" id="search-input" placeholder="Search products..." />
+        <select id="sort-select">
+          <option value="default">Default order</option>
+          <option value="price-asc">Price: low to high</option>
+          <option value="price-desc">Price: high to low</option>
+          <option value="rating-desc">Rating: highest first</option>
+        </select>
+        <label
+          ><input type="checkbox" id="filter-in-stock" /> In stock only</label
+        >
+        <span id="result-count"></span>
+      </div>
+
+      <div id="category-nav"></div>
+
+      <div class="tabs" id="view-tabs">
+        <button data-view="grid" class="active">Grid view</button>
+        <button data-view="table">Table view</button>
+      </div>
+
+      <section id="products"></section>
+      <div id="products-table-wrap" class="hidden">
+        <table class="product-table" id="products-table">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Category</th>
+              <th>Price</th>
+              <th>Rating</th>
+              <th>Stock</th>
+            </tr>
+          </thead>
+          <tbody id="products-table-body"></tbody>
+        </table>
+      </div>
+
+      <button id="load-more">Load more products</button>
+      <div id="sentinel"></div>
+      <div id="infinite-status"></div>
+
+      <section class="category-section">
+        <h2>Trending Now (live-updating prices)</h2>
+        <div id="trending-products"></div>
+      </section>
+
+      <section class="category-section">
+        <h2>Related Products (carousel, lazy-loaded slides)</h2>
+        <div class="carousel" id="related-carousel"></div>
+      </section>
+
+      <section class="category-section">
+        <h2>Custom Element Product Cards (Shadow DOM)</h2>
+        <div id="shadow-products"></div>
+      </section>
+
+      <section class="category-section">
+        <h2>Embedded Catalog (iframe, same-origin srcdoc)</h2>
+        <iframe id="nested-frame" title="Nested catalog"></iframe>
+      </section>
+
+      <section id="late-section" class="category-section">
+        <h2>Recently Viewed (loads very late)</h2>
+        <div id="late-products">
+          <div class="skeleton"></div>
+          <div class="skeleton"></div>
+          <div class="skeleton"></div>
+        </div>
+      </section>
+
+      <section id="flaky-section" class="category-section">
+        <h2>Recommended (occasionally errors)</h2>
+        <div id="flaky-products">Loading...</div>
+      </section>
+
+      <section class="category-section">
+        <h2>FAQ (lazy-loaded accordion content)</h2>
+        <div id="faq"></div>
+      </section>
+
+      <section class="category-section">
+        <h2>Newsletter Signup (validated form)</h2>
+        <form id="newsletter-form">
+          <input
+            type="email"
+            id="newsletter-email"
+            placeholder="you@example.com"
+          />
+          <button type="submit">Subscribe</button>
+          <div id="newsletter-errors"></div>
+          <div id="newsletter-success" class="hidden">Subscribed!</div>
+        </form>
+      </section>
+
+      <section class="category-section">
+        <h2>
+          Churn Zone (nodes added/removed on interval — tests stale element
+          handling)
+        </h2>
+        <div id="churn-zone"></div>
+      </section>
+
+      <footer>
+        <p id="footer-note">
+          Page fully rendered marker: <span id="render-complete">false</span>
+        </p>
+        <p>Total products in dataset: <span id="total-count"></span></p>
+      </footer>
+    </main>
 
     <script>
-      const products = [
-        {
-          title: "Security Headers Audit",
-          price: "$49",
-          url: "/products/security-headers-audit",
-        },
-        {
-          title: "CORS Misconfiguration Report",
-          price: "$79",
-          url: "/products/cors-report",
-        },
-        {
-          title: "SSL Expiry Monitoring",
-          price: "$39",
-          url: "/products/ssl-monitoring",
-        },
+      // =================================================================
+      // Utilities
+      // =================================================================
+      function seededRandom(seed) {
+        let s = seed;
+        return function () {
+          s = (s * 9301 + 49297) % 233280;
+          return s / 233280;
+        };
+      }
+      const rand = seededRandom(1337);
+
+      function slugify(str) {
+        return str
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/(^-|-$)/g, "");
+      }
+
+      function showToast(message, ms = 3000) {
+        const stack = document.querySelector("#toast-stack");
+        const el = document.createElement("div");
+        el.className = "toast";
+        el.textContent = message;
+        stack.appendChild(el);
+        setTimeout(() => el.remove(), ms);
+      }
+
+      // =================================================================
+      // Cookie consent overlay
+      // =================================================================
+      const cookieBanner = document.querySelector("#cookie-banner");
+      document.querySelector("#cookie-accept").addEventListener("click", () => {
+        cookieBanner.remove();
+        showToast("Cookies accepted");
+      });
+      document.querySelector("#cookie-reject").addEventListener("click", () => {
+        cookieBanner.remove();
+        showToast("Cookies rejected");
+      });
+
+      // =================================================================
+      // Theme toggle
+      // =================================================================
+      document.querySelector("#theme-toggle").addEventListener("click", () => {
+        const html = document.documentElement;
+        html.dataset.theme = html.dataset.theme === "dark" ? "light" : "dark";
+      });
+
+      // =================================================================
+      // Data generation — larger and richer catalog
+      // =================================================================
+      const categories = [
+        "Security Audits",
+        "Monitoring",
+        "Compliance Reports",
+        "Penetration Testing",
+        "Cloud Configuration",
+        "API Tooling",
+        "Network Scanning",
+        "Data Privacy",
+        "Incident Response",
+        "Identity & Access",
+        "Container Security",
+        "Threat Intelligence",
       ];
 
-      setTimeout(() => {
-        const productsContainer = document.querySelector("#products");
-        const status = document.querySelector("#status");
+      const adjectives = [
+        "Advanced",
+        "Essential",
+        "Premium",
+        "Automated",
+        "Comprehensive",
+        "Realtime",
+        "Enterprise",
+        "Lightweight",
+        "Deep",
+        "Continuous",
+        "Adaptive",
+        "Scalable",
+        "Zero-Trust",
+        "Managed",
+      ];
 
-        products.forEach((product) => {
-          const article = document.createElement("article");
-          article.className = "product-card";
+      const nouns = [
+        "Headers Audit",
+        "Misconfiguration Report",
+        "Expiry Monitoring",
+        "Vulnerability Scan",
+        "Access Review",
+        "Policy Checklist",
+        "Traffic Analysis",
+        "Endpoint Assessment",
+        "Token Rotation Guide",
+        "Firewall Review",
+        "Dependency Scan",
+        "Secrets Detection",
+        "Rate Limit Audit",
+        "Session Hardening",
+        "Backup Verification",
+        "Log Correlation",
+        "Patch Compliance",
+        "Key Rotation Policy",
+      ];
 
-          article.innerHTML = `
-          <h2 class="product-title">${product.title}</h2>
-          <p class="product-price">${product.price}</p>
+      const TOTAL_PRODUCTS = 1920; // 4x the previous 480
+      const allProducts = [];
+
+      for (let i = 0; i < TOTAL_PRODUCTS; i++) {
+        const category = categories[i % categories.length];
+        const adjective = adjectives[Math.floor(rand() * adjectives.length)];
+        const noun = nouns[Math.floor(rand() * nouns.length)];
+        const title = `${adjective} ${noun} #${i + 1}`;
+        const basePrice = 19 + Math.floor(rand() * 280);
+        const onSale = rand() < 0.2;
+        const salePrice = onSale
+          ? Math.max(9, basePrice - Math.floor(rand() * 60))
+          : null;
+        const outOfStock = rand() < 0.08;
+        const isFeatured = rand() < 0.05;
+        const isNew = rand() < 0.15;
+        const rating = (rand() * 2 + 3).toFixed(1);
+        const reviews = Math.floor(rand() * 900);
+
+        allProducts.push({
+          id: `prod-${i + 1}`,
+          title,
+          category,
+          price: basePrice,
+          salePrice,
+          outOfStock,
+          isFeatured,
+          isNew,
+          rating: Number(rating),
+          reviews,
+          url: `/products/${slugify(category)}/${slugify(title)}-${i + 1}`,
+          sku: `SKU-${(1000 + i).toString(36).toUpperCase()}`,
+          imageSeed: i % 40,
+        });
+      }
+      document.querySelector("#total-count").textContent = TOTAL_PRODUCTS;
+
+      // =================================================================
+      // Category nav
+      // =================================================================
+      const navEl = document.querySelector("#category-nav");
+      const navList = document.createElement("ul");
+      navList.id = "category-list";
+      categories.forEach((cat) => {
+        const li = document.createElement("li");
+        const count = allProducts.filter((p) => p.category === cat).length;
+        li.innerHTML = `<a href="#cat-${slugify(cat)}" data-category="${cat}">${cat}</a> <span class="count">(${count})</span>`;
+        navList.appendChild(li);
+      });
+      navEl.appendChild(navList);
+      navEl.addEventListener("click", (e) => {
+        const link = e.target.closest("a[data-category]");
+        if (!link) return;
+        e.preventDefault();
+        activeCategoryFilter = link.dataset.category;
+        applyFiltersAndRender();
+      });
+
+      // =================================================================
+      // Rendering: product card (with lazy image)
+      // =================================================================
+      function renderProductCard(product) {
+        const article = document.createElement("article");
+        article.className = "product-card";
+        article.dataset.productId = product.id;
+        article.dataset.category = product.category;
+        if (product.outOfStock) article.classList.add("out-of-stock");
+        if (product.isFeatured) article.classList.add("featured");
+
+        const priceHtml = product.salePrice
+          ? `<span class="price-strike">$${product.price}</span><span class="product-price">$${product.salePrice}</span>`
+          : `<span class="product-price">$${product.price}</span>`;
+
+        const badges = [
+          product.isNew ? '<span class="badge badge-new">New</span>' : "",
+          product.salePrice ? '<span class="badge badge-sale">Sale</span>' : "",
+        ].join("");
+
+        article.innerHTML = `
+          <img class="lazy" width="60" height="40" data-src="https://picsum.photos/seed/${product.imageSeed}/60/40" alt="${product.title}" />
+          <h2 class="product-title">${product.title} ${badges}</h2>
+          <p class="product-meta">SKU: ${product.sku} &middot; Category: ${product.category}</p>
+          <p class="product-price-wrap">${priceHtml}</p>
+          <p class="product-rating">Rating: ${product.rating} (${product.reviews} reviews)</p>
+          <p class="product-stock">${product.outOfStock ? "Out of stock" : "In stock"}</p>
           <a class="product-link" href="${product.url}">View product</a>
         `;
+        return article;
+      }
 
-          productsContainer.appendChild(article);
+      // Lazy image loader
+      const lazyImgObserver = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              const img = entry.target;
+              img.src = img.dataset.src;
+              img.classList.remove("lazy");
+              lazyImgObserver.unobserve(img);
+            }
+          });
+        },
+        { rootMargin: "150px" },
+      );
+
+      function observeLazyImages(container) {
+        container
+          .querySelectorAll("img.lazy[data-src]")
+          .forEach((img) => lazyImgObserver.observe(img));
+      }
+
+      // =================================================================
+      // Filtering / sorting / search (client-side, re-renders grid+table)
+      // =================================================================
+      let activeCategoryFilter = null;
+      let searchTerm = "";
+      let sortMode = "default";
+      let inStockOnly = false;
+      const PAGE_SIZE = 24;
+      let visibleCount = PAGE_SIZE;
+
+      function getFilteredProducts() {
+        let list = allProducts.slice();
+        if (activeCategoryFilter)
+          list = list.filter((p) => p.category === activeCategoryFilter);
+        if (searchTerm) {
+          const term = searchTerm.toLowerCase();
+          list = list.filter((p) => p.title.toLowerCase().includes(term));
+        }
+        if (inStockOnly) list = list.filter((p) => !p.outOfStock);
+        if (sortMode === "price-asc")
+          list.sort(
+            (a, b) => (a.salePrice ?? a.price) - (b.salePrice ?? b.price),
+          );
+        if (sortMode === "price-desc")
+          list.sort(
+            (a, b) => (b.salePrice ?? b.price) - (a.salePrice ?? a.price),
+          );
+        if (sortMode === "rating-desc")
+          list.sort((a, b) => b.rating - a.rating);
+        return list;
+      }
+
+      const productsContainer = document.querySelector("#products");
+      const tableBody = document.querySelector("#products-table-body");
+      const status = document.querySelector("#status");
+      const loadMoreBtn = document.querySelector("#load-more");
+      const resultCountEl = document.querySelector("#result-count");
+      let currentView = "grid";
+
+      function applyFiltersAndRender() {
+        visibleCount = PAGE_SIZE;
+        renderVisible();
+      }
+
+      function renderVisible() {
+        const filtered = getFilteredProducts();
+        const slice = filtered.slice(0, visibleCount);
+
+        productsContainer.innerHTML = "";
+        slice.forEach((p) =>
+          productsContainer.appendChild(renderProductCard(p)),
+        );
+        observeLazyImages(productsContainer);
+
+        tableBody.innerHTML = "";
+        slice.forEach((p) => {
+          const tr = document.createElement("tr");
+          tr.dataset.productId = p.id;
+          tr.innerHTML = `
+            <td>${p.title}</td>
+            <td>${p.category}</td>
+            <td>$${p.salePrice ?? p.price}</td>
+            <td>${p.rating}</td>
+            <td>${p.outOfStock ? "Out of stock" : "In stock"}</td>
+          `;
+          tableBody.appendChild(tr);
         });
 
-        status.textContent = "Products loaded";
+        resultCountEl.textContent = `${filtered.length} result(s)`;
+        status.textContent = `Products loaded (${slice.length} of ${filtered.length} filtered, ${allProducts.length} total)`;
+        loadMoreBtn.disabled = visibleCount >= filtered.length;
+        loadMoreBtn.textContent = loadMoreBtn.disabled
+          ? "No more products"
+          : "Load more products";
+      }
+
+      document.querySelector("#search-input").addEventListener("input", (e) => {
+        clearTimeout(window.__searchDebounce);
+        window.__searchDebounce = setTimeout(() => {
+          searchTerm = e.target.value;
+          applyFiltersAndRender();
+        }, 300);
+      });
+      document.querySelector("#sort-select").addEventListener("change", (e) => {
+        sortMode = e.target.value;
+        applyFiltersAndRender();
+      });
+      document
+        .querySelector("#filter-in-stock")
+        .addEventListener("change", (e) => {
+          inStockOnly = e.target.checked;
+          applyFiltersAndRender();
+        });
+
+      // View tabs
+      document.querySelector("#view-tabs").addEventListener("click", (e) => {
+        const btn = e.target.closest("button[data-view]");
+        if (!btn) return;
+        currentView = btn.dataset.view;
+        document
+          .querySelectorAll("#view-tabs button")
+          .forEach((b) => b.classList.toggle("active", b === btn));
+        document
+          .querySelector("#products")
+          .classList.toggle("hidden", currentView !== "grid");
+        document
+          .querySelector("#products-table-wrap")
+          .classList.toggle("hidden", currentView !== "table");
+      });
+
+      // Initial staggered load
+      setTimeout(() => {
+        renderVisible();
       }, 1200);
+
+      loadMoreBtn.addEventListener("click", () => {
+        loadMoreBtn.textContent = "Loading...";
+        loadMoreBtn.disabled = true;
+        setTimeout(
+          () => {
+            visibleCount += PAGE_SIZE;
+            renderVisible();
+          },
+          400 + Math.floor(rand() * 600),
+        );
+      });
+
+      // Infinite scroll
+      const sentinel = document.querySelector("#sentinel");
+      const infiniteStatus = document.querySelector("#infinite-status");
+      let infiniteLoading = false;
+      new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting && !infiniteLoading) {
+              infiniteLoading = true;
+              infiniteStatus.textContent = "Fetching more via scroll...";
+              setTimeout(() => {
+                visibleCount += PAGE_SIZE;
+                renderVisible();
+                infiniteStatus.textContent = `Infinite scroll appended products, visible now ${visibleCount}`;
+                infiniteLoading = false;
+              }, 500);
+            }
+          });
+        },
+        { rootMargin: "200px" },
+      ).observe(sentinel);
+
+      // =================================================================
+      // Trending products with a live-updating price ticker (WS-like)
+      // =================================================================
+      const trendingEl = document.querySelector("#trending-products");
+      const trendingProducts = allProducts
+        .slice(0, 6)
+        .map((p) => ({ ...p, livePrice: p.salePrice ?? p.price }));
+
+      function renderTrending() {
+        trendingEl.innerHTML = "";
+        trendingProducts.forEach((p) => {
+          const row = document.createElement("div");
+          row.className = "product-card";
+          row.dataset.productId = p.id;
+          row.innerHTML = `
+            <span class="product-title">${p.title}</span>
+            <span class="live-price" data-product-id="${p.id}">$${p.livePrice.toFixed(2)}</span>
+          `;
+          trendingEl.appendChild(row);
+        });
+      }
+      renderTrending();
+
+      let tickCount = 0;
+      const tickerInterval = setInterval(() => {
+        tickCount++;
+        trendingProducts.forEach((p) => {
+          const delta = (rand() - 0.5) * 6;
+          p.livePrice = Math.max(5, p.livePrice + delta);
+          const el = trendingEl.querySelector(
+            `.live-price[data-product-id="${p.id}"]`,
+          );
+          if (el) {
+            el.textContent = `$${p.livePrice.toFixed(2)}`;
+            el.className =
+              "live-price " + (delta >= 0 ? "ticker-up" : "ticker-down");
+            el.dataset.productId = p.id;
+          }
+        });
+        if (tickCount >= 12) clearInterval(tickerInterval); // stop after ~24s
+      }, 2000);
+
+      // =================================================================
+      // Related products carousel — slides added lazily as user scrolls it
+      // =================================================================
+      const carousel = document.querySelector("#related-carousel");
+      const relatedPool = allProducts.slice(100, 140);
+      let carouselIndex = 0;
+      function appendCarouselSlide() {
+        if (carouselIndex >= relatedPool.length) return;
+        const p = relatedPool[carouselIndex++];
+        carousel.appendChild(renderProductCard(p));
+      }
+      for (let i = 0; i < 6; i++) appendCarouselSlide();
+      carousel.addEventListener("scroll", () => {
+        if (
+          carousel.scrollLeft + carousel.clientWidth >=
+          carousel.scrollWidth - 50
+        ) {
+          appendCarouselSlide();
+        }
+      });
+
+      // =================================================================
+      // Custom Element with Shadow DOM — tests shadow-piercing scrapers
+      // =================================================================
+      class ShadowProductCard extends HTMLElement {
+        connectedCallback() {
+          const title = this.getAttribute("title") || "";
+          const price = this.getAttribute("price") || "";
+          const sku = this.getAttribute("sku") || "";
+          const shadow = this.attachShadow({ mode: "open" });
+          shadow.innerHTML = `
+            <style>
+              .card { border: 1px solid #999; padding: 0.5rem; margin-bottom: 4px; border-radius: 4px; }
+              .price { font-weight: bold; }
+            </style>
+            <div class="card">
+              <div class="shadow-title">${title}</div>
+              <div class="shadow-sku">${sku}</div>
+              <div class="price shadow-price">$${price}</div>
+            </div>
+          `;
+        }
+      }
+      customElements.define("shadow-product-card", ShadowProductCard);
+
+      const shadowContainer = document.querySelector("#shadow-products");
+      allProducts.slice(200, 208).forEach((p) => {
+        const el = document.createElement("shadow-product-card");
+        el.setAttribute("title", p.title);
+        el.setAttribute("price", String(p.salePrice ?? p.price));
+        el.setAttribute("sku", p.sku);
+        shadowContainer.appendChild(el);
+      });
+
+      // =================================================================
+      // Nested iframe with its own independent product list (srcdoc)
+      // =================================================================
+      const iframeProducts = allProducts.slice(300, 306);
+      const iframeRows = iframeProducts
+        .map(
+          (p) =>
+            `<article class="product-card" data-product-id="${p.id}"><h3>${p.title}</h3><p>$${p.salePrice ?? p.price}</p></article>`,
+        )
+        .join("");
+      document.querySelector("#nested-frame").srcdoc = `
+        <!doctype html><html><head><style>
+          body{font-family:sans-serif;margin:0.5rem;}
+          .product-card{border:1px solid #ccc;padding:0.4rem;margin-bottom:4px;}
+        </style></head>
+        <body>
+          <div id="status">Nested frame loading...</div>
+          <div id="nested-products"></div>
+          <script>
+            setTimeout(() => {
+              document.querySelector('#nested-products').innerHTML = ${JSON.stringify(iframeRows)};
+              document.querySelector('#status').textContent = 'Nested frame loaded';
+            }, 900);
+          <\/script>
+        </body></html>
+      `;
+
+      // =================================================================
+      // Late section (5.5s)
+      // =================================================================
+      setTimeout(() => {
+        const lateEl = document.querySelector("#late-products");
+        lateEl.innerHTML = "";
+        allProducts
+          .slice(0, 6)
+          .forEach((p) => lateEl.appendChild(renderProductCard(p)));
+        observeLazyImages(lateEl);
+      }, 5500);
+
+      // =================================================================
+      // Flaky section (2.8s, 50% error rate, retryable)
+      // =================================================================
+      setTimeout(() => {
+        const flakyEl = document.querySelector("#flaky-products");
+        const shouldError = rand() < 0.5;
+        function loadFlaky() {
+          flakyEl.innerHTML = "";
+          allProducts
+            .slice(10, 14)
+            .forEach((p) => flakyEl.appendChild(renderProductCard(p)));
+          observeLazyImages(flakyEl);
+        }
+        if (shouldError) {
+          flakyEl.innerHTML = `<p class="error-message" role="alert">Failed to load recommendations. <button id="retry-flaky">Retry</button></p>`;
+          document
+            .querySelector("#retry-flaky")
+            .addEventListener("click", () => {
+              flakyEl.innerHTML = "Loading...";
+              setTimeout(loadFlaky, 700);
+            });
+        } else {
+          loadFlaky();
+        }
+      }, 2800);
+
+      // =================================================================
+      // FAQ accordion — content injected lazily on first expand
+      // =================================================================
+      const faqData = [
+        {
+          q: "How often is the catalog updated?",
+          a: "The catalog refreshes hourly with new audit templates and pricing.",
+        },
+        {
+          q: "Can I bulk export reports?",
+          a: "Yes, bulk export is available on Enterprise plans as a CSV or JSON feed.",
+        },
+        {
+          q: "Do prices include tax?",
+          a: "Displayed prices are pre-tax; tax is calculated at checkout based on region.",
+        },
+        {
+          q: "Is there an API for this catalog?",
+          a: "Yes, a REST API mirrors this catalog with pagination and filtering support.",
+        },
+      ];
+      const faqEl = document.querySelector("#faq");
+      faqData.forEach((item, idx) => {
+        const wrap = document.createElement("div");
+        wrap.className = "accordion-item";
+        wrap.innerHTML = `
+          <div class="accordion-header" data-idx="${idx}">${item.q}</div>
+          <div class="accordion-body" data-idx="${idx}"></div>
+        `;
+        faqEl.appendChild(wrap);
+      });
+      faqEl.addEventListener("click", (e) => {
+        const header = e.target.closest(".accordion-header");
+        if (!header) return;
+        const idx = header.dataset.idx;
+        const body = faqEl.querySelector(`.accordion-body[data-idx="${idx}"]`);
+        const isOpen = body.classList.contains("open");
+        if (!isOpen && !body.textContent) {
+          body.textContent = "Loading answer...";
+          setTimeout(() => {
+            body.textContent = faqData[idx].a;
+          }, 400);
+        }
+        body.classList.toggle("open", !isOpen);
+      });
+
+      // =================================================================
+      // Newsletter form with async validation
+      // =================================================================
+      document
+        .querySelector("#newsletter-form")
+        .addEventListener("submit", (e) => {
+          e.preventDefault();
+          const emailInput = document.querySelector("#newsletter-email");
+          const errors = document.querySelector("#newsletter-errors");
+          const success = document.querySelector("#newsletter-success");
+          errors.textContent = "";
+          success.classList.add("hidden");
+          const email = emailInput.value.trim();
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            errors.textContent = "Please enter a valid email address.";
+            return;
+          }
+          errors.textContent = "Submitting...";
+          setTimeout(() => {
+            errors.textContent = "";
+            success.classList.remove("hidden");
+            showToast("Subscribed to newsletter");
+          }, 600);
+        });
+
+      // =================================================================
+      // Churn zone — nodes added and removed periodically to test
+      // stale-element / re-query handling in scrapers
+      // =================================================================
+      const churnZone = document.querySelector("#churn-zone");
+      let churnTick = 0;
+      const churnInterval = setInterval(() => {
+        churnTick++;
+        churnZone.innerHTML = "";
+        const churnBatch = allProducts.slice(
+          400 + churnTick * 3,
+          400 + churnTick * 3 + 3,
+        );
+        churnBatch.forEach((p) => churnZone.appendChild(renderProductCard(p)));
+        if (churnTick >= 8) clearInterval(churnInterval);
+      }, 1500);
+
+      // =================================================================
+      // Render-complete marker
+      // =================================================================
+      setTimeout(() => {
+        document.querySelector("#render-complete").textContent = "true";
+      }, 7000);
+
+      // Hidden decoy element
+      const decoy = document.createElement("div");
+      decoy.className = "product-card hidden";
+      decoy.dataset.productId = "decoy-should-be-ignored";
+      decoy.innerHTML = `<h2 class="product-title">DO NOT SCRAPE ME</h2><p class="product-price">$0</p>`;
+      document.body.appendChild(decoy);
     </script>
   </body>
 </html>

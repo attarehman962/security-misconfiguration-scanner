@@ -47,7 +47,7 @@ class StructuredScrapeRequest(BaseModel):
         description="Optional selector for item link.",
     )
     max_items: int = Field(
-        default=50,
+        default=200,
         ge=1,
         le=200,
         description="Maximum number of items to scrape.",

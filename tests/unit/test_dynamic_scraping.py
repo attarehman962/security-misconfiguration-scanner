@@ -49,6 +49,10 @@ class FakeLocator:
         """Return one match when this fake element exists."""
         return 1 if self._exists else 0
 
+    async def is_visible(self) -> bool:
+        """Return whether this fake element should be treated as visible."""
+        return self._exists
+
     async def inner_text(
         self,
         *,

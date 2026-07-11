@@ -16,9 +16,15 @@ class ScrapeConfig:
     price_selector: str | None = None
     link_selector: str | None = None
     timeout_ms: int = 15_000
-    max_items: int = 50
+    max_items: int = 200
     headless: bool = True
     browser_channel: str | None = None
+    load_more_selector: str | None = None
+    scroll_to_load: bool = True
+    stability_checks: int = 3
+    stability_interval_ms: int = 500
+    max_pagination_rounds: int = 200
+    max_stabilize_ms: int = 15_000
     screenshot_dir: Path = Path("artifacts/screenshots")
 
     def __post_init__(self) -> None:
@@ -37,6 +43,18 @@ class ScrapeConfig:
 
         if self.max_items <= 0:
             raise ValueError("max_items must be greater than zero")
+
+        if self.stability_checks <= 0:
+            raise ValueError("stability_checks must be greater than zero")
+
+        if self.stability_interval_ms <= 0:
+            raise ValueError("stability_interval_ms must be greater than zero")
+
+        if self.max_pagination_rounds <= 0:
+            raise ValueError("max_pagination_rounds must be greater than zero")
+
+        if self.max_stabilize_ms <= 0:
+            raise ValueError("max_stabilize_ms must be greater than zero")
 
 
 @dataclass(frozen=True)

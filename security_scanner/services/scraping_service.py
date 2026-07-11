@@ -206,7 +206,7 @@ class ScrapingService:
     """Application service that coordinates static and JavaScript scraping."""
 
     DEFAULT_TIMEOUT_SECONDS = 15
-    DEFAULT_MAX_ITEMS = 50
+    DEFAULT_MAX_ITEMS = 200
 
     def __init__(
         self,

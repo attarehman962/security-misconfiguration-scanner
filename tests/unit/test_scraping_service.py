@@ -140,7 +140,7 @@ def build_mock_client(html: str) -> httpx.AsyncClient:
 def build_scrape_request(
     *,
     title_selector: str = ".product-title",
-    max_items: int = 50,
+    max_items: int = 200,
 ) -> StructuredScrapeRequest:
     """Build a valid scrape request for service tests."""
     return StructuredScrapeRequest.model_validate(

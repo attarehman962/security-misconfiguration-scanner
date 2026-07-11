@@ -143,8 +143,7 @@ For the Docker quick start, you only need:
 - Docker with the Compose plugin.
 - A free host port for the API, default `8000`.
 - A free host port for the target site, default `8099`.
-- A free host port for PostgreSQL. The examples use `55432` to avoid conflicts
-  with a local PostgreSQL server on `5432`.
+- A free host port for PostgreSQL, default `5432`.
 
 For local Python development without Docker, use Python 3.11+ and install the
 project dependencies from `requirements.txt` and `requirements-dev.txt`.
@@ -185,10 +184,11 @@ Shut down the stack and remove the test database volume:
 docker compose -f docker/docker-compose.yml -f docker/docker-compose.ci.yml down -v
 ```
 
-You do not need to copy `.env.example` for the Docker quick start. If you already
-have a local `.env` file with `DATABASE_URL=sqlite:///./app.db`, remove that
-line or override it before starting Docker, otherwise Compose will pass SQLite
-to the app instead of the PostgreSQL service.
+You do not need to copy `.env.example` for the Docker quick start. Local
+development defaults to PostgreSQL with `DATABASE_URL` pointing at the Compose
+database on `localhost` when running Python directly on your machine. Docker
+Compose maps its own `DOCKER_DATABASE_URL` to the app container so the service
+uses the internal `db` hostname.
 
 ## Docker Compose
 
