@@ -22,7 +22,8 @@ class Settings(BaseSettings):
         validation_alias="ACCESS_TOKEN_EXPIRE_MINUTES",
     )
     database_url: str = Field(
-        default="postgresql+psycopg://postgres:postgres@localhost:5432/security_scanner",
+        default="",
+        min_length=1,
         validation_alias="DATABASE_URL",
     )
     app_name: str = Field(

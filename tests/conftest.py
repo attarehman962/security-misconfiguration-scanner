@@ -10,12 +10,15 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+TEST_DATABASE_URL = "sqlite+pysqlite:///:memory:"
+
 os.environ.setdefault(
     "JWT_SECRET_KEY",
     "test-secret-key-that-is-long-enough-for-local-tests",
 )
 os.environ.setdefault("JWT_ALGORITHM", "HS256")
 os.environ.setdefault("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
+os.environ.setdefault("DATABASE_URL", TEST_DATABASE_URL)
 
 from security_scanner.core import create_access_token  # noqa: E402
 from security_scanner.db import (
@@ -24,8 +27,6 @@ from security_scanner.db import (
 )
 from security_scanner.main import app  # noqa: E402
 from security_scanner.models import User  # noqa: E402
-
-TEST_DATABASE_URL = "sqlite+pysqlite:///:memory:"
 
 engine = create_engine(
     TEST_DATABASE_URL,
